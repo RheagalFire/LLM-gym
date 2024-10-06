@@ -3,7 +3,7 @@
 
 ### Understanding Math Behind large Language Models 
 - [Minimal Introduction to Large Language Models](https://poloclub.github.io/transformer-explainer/) : Understand the High Level Concepts of Transformers Visually!
-- [Understanding LLM Inference](https://kipp.ly/transformer-inference-arithmetic/) : Understand operations behind Kv-Cache , Flops Counting.
+- [Understanding LLM Inference](https://kipp.ly/transformer-inference-arithmetic/) : Understand operations behind Kv-Cache , Flops Counting!
 - [Quantization Principal](https://www.maartengrootendorst.com/blog/quantization/) : Understand types of quantization and how they can reduce memory overhead required for inferencing and training!
 - [Calculate GPU Memory Required for Serving LLMS](https://www.substratus.ai/blog/calculating-gpu-memory-for-llm) : Reasons that make up memory for a LLM model!
 - [LLM Underhood](https://bbycroft.net/llm) : Under-the-hood mechanics of Transformers technique!
