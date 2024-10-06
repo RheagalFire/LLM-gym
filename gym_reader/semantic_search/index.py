@@ -31,13 +31,26 @@ class GymIndex:
         dimension: Optional[int] = 1536,
         provider: str = "openai",
     ):
-        response = self.openai_client.embeddings.create(
-            model=model,
-            input=text,
-            encoding_format="float",
-            dimensions=dimension,
-        )
-        return response.data[0].embedding
+        try:
+            # assume 1 word = 3 tokens (for simplicity)
+            # TODO: use tiktoken
+            MAX_TOKENS = 7000
+            MAX_WORDS = MAX_TOKENS // 3
+            TEXT_WORDS = len(text.split())
+            if TEXT_WORDS > MAX_WORDS:
+                words = text.split()
+                text = " ".join(words[:MAX_WORDS])
+                log.info(f"Text trimmed to {MAX_WORDS} words for embedding.")
+            response = self.openai_client.embeddings.create(
+                model=model,
+                input=text,
+                encoding_format="float",
+                dimensions=dimension,
+            )
+            return response.data[0].embedding
+        except Exception as e:
+            log.error(f"Error getting embedding: {e}", exc_info=True)
+            raise e
 
     def search_from_collection(self, query: str, collection_name: str, limit: int = 10):
         # Search the summary Index

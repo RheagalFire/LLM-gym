@@ -167,7 +167,8 @@ async def push_action_handler(payload, request):
                 )
             except Exception as e:
                 log.error(f"Error adding to qdrant collection: {e}", exc_info=True)
-                raise e
+                continue
+        # TODO: handle deleted links
     log.info(f"Added links: {added_links}")
     log.info(f"Deleted links: {deleted_links}")
     return added_links, deleted_links, meta_to_add_to_index
