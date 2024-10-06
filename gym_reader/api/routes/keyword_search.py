@@ -13,8 +13,6 @@ async def keyword_search(request: Request, keyword: str, collection_name: str) -
     try:
         log.debug(request.headers)
         all_attributes = meilisearch_client.index(collection_name).search(keyword)
-        hits = all_attributes["hits"] * 3
-        all_attributes["hits"] = hits
         return JSONResponse(content=all_attributes)
     except Exception as e:
         log.error(e)
