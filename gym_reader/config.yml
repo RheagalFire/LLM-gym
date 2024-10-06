@@ -1,0 +1,10 @@
+base_branch: main  # Specify the base branch here
+
+search_paths:  # Add paths to search for Markdown files
+  - "**"
+  # Add more paths as needed
+
+include_extensions:  # Specify file extensions to include
+  - md
+  - markdown
+  # Add more extensions as needed

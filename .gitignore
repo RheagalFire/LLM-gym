@@ -1,0 +1,54 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+# ENV
+*.env
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+search-ui/node_modules
+search-ui/.pnp
+search-ui/.pnp.js
+
+# testing
+/coverage
+
+# production
+search-ui/build
+
+# misc
+.DS_Store
+search-ui/.env.local
+search-ui/.env.development.local
+search-ui/.env.test.local
+search-ui/.env.production.local
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
