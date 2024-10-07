@@ -5,6 +5,8 @@ from qdrant_client import models
 from gym_reader.data_models import PayloadForIndexing
 from openai import OpenAI
 from gym_reader.logger import get_logger
+from fastembed import TextEmbedding
+import tiktoken
 
 log = get_logger(__name__)
 
@@ -23,6 +25,8 @@ class GymIndex:
         self.default_embedding_provider_for_summary = "openai"
         self.default_embedding_dimension_for_content = 1536
         self.default_embedding_provider_for_content = "openai"
+        self.text_embedding_model = TextEmbedding("BAAI/bge-base-en")
+        self.tokenizer = tiktoken.get_encoding("cl100k_base")  # Initialize tokenizer
 
     def get_embedding(
         self,
@@ -31,26 +35,30 @@ class GymIndex:
         dimension: Optional[int] = 1536,
         provider: str = "openai",
     ):
-        try:
-            # assume 1 word = 3 tokens (for simplicity)
-            # TODO: use tiktoken
-            MAX_TOKENS = 7000
-            MAX_WORDS = MAX_TOKENS // 3
-            TEXT_WORDS = len(text.split())
-            if TEXT_WORDS > MAX_WORDS:
-                words = text.split()
-                text = " ".join(words[:MAX_WORDS])
-                log.info(f"Text trimmed to {MAX_WORDS} words for embedding.")
-            response = self.openai_client.embeddings.create(
-                model=model,
-                input=text,
-                encoding_format="float",
-                dimensions=dimension,
-            )
-            return response.data[0].embedding
-        except Exception as e:
-            log.error(f"Error getting embedding: {e}", exc_info=True)
-            raise e
+        if provider == "openai":
+            try:
+                # assume 1 word = 4 tokens (for simplicity)
+                # TODO: use tiktoken
+                MAX_TOKENS = 7000
+                tokens = self.tokenizer.encode(text)
+                # TODO: 1. Use Averaging of the embedding for the truncated text
+                # TODO: 2. Chunk Different parts of the text and embed them separately
+                if len(tokens) > MAX_TOKENS:
+                    tokens = tokens[:MAX_TOKENS]
+                    text = self.tokenizer.decode(tokens)
+                response = self.openai_client.embeddings.create(
+                    model=model,
+                    input=text,
+                    encoding_format="float",
+                    dimensions=dimension,
+                )
+                return response.data[0].embedding
+            except Exception as e:
+                log.error(f"Error getting embedding: {e}", exc_info=True)
+                raise e
+        else:
+            # it will only process 512 sequence at length
+            return list(self.text_embedding_model.embed(text))
 
     def search_from_collection(self, query: str, collection_name: str, limit: int = 10):
         # Search the summary Index
@@ -83,6 +91,30 @@ class GymIndex:
             query=models.FusionQuery(fusion=models.Fusion.RRF),
         )
         return results
+
+    def check_if_link_exists(self, link: str, collection_name: str):
+        # First check if the collection exists or not
+        existing_collections = [
+            collection.name
+            for collection in self.qdrant_client.get_collections().collections
+        ]
+        if collection_name not in existing_collections:
+            return False
+        # let's check if the link exists in the qdrant collection
+        results = self.qdrant_client.scroll(
+            collection_name=collection_name,
+            scroll_filter=models.Filter(
+                should=[
+                    models.FieldCondition(
+                        key="parent_link", match=models.MatchValue(value=link)
+                    )
+                ]
+            ),
+            limit=1,
+        )
+        if results:
+            return True
+        return False
 
     def add_to_qdrant_collection(self, data: PayloadForIndexing, collection_name: str):
         existing_collections = [
@@ -133,9 +165,30 @@ class GymIndex:
             log.error(f"Error adding to qdrant collection: {e}", exc_info=True)
             raise e
 
-    def delete_from_qdrant_collection(self, point_ids: list[str], collection_name: str):
+    def delete_from_qdrant_collection(self, links: list[str], collection_name: str):
         try:
-            self.qdrant_client.delete(collection_name=collection_name, points=point_ids)
+            results, offset = self.qdrant_client.scroll(
+                collection_name=collection_name,
+                scroll_filter=models.Filter(
+                    should=[
+                        models.FieldCondition(
+                            key="parent_link", match=models.MatchAny(any=links)
+                        )
+                    ]
+                ),
+                limit=1000,
+            )
+            # get the point ids
+            point_ids = [result.id for result in results]
+            # delete the points
+            try:
+                self.qdrant_client.delete(
+                    collection_name=collection_name, points_selector=point_ids
+                )
+            except Exception as e:
+                log.error(f"Error deleting from qdrant collection: {e}", exc_info=True)
+                raise e
+            return True
         except Exception as e:
             log.error(f"Error deleting from qdrant collection: {e}", exc_info=True)
             raise e
@@ -169,14 +222,14 @@ class GymIndex:
                     ],
                     "displayedAttributes": [
                         "parent_link",
+                        "parent_summary",
                         "parent_title",
                         "parent_keywords",
-                        "parent_content",
                     ],
                     "sortableAttributes": ["parent_link", "parent_title"],
                     "typoTolerance": {
                         "minWordSizeForTypos": {"oneTypo": 8, "twoTypos": 10},
-                        "disableOnAttributes": ["title"],
+                        "disableOnAttributes": ["parent_summary"],
                     },
                     "pagination": {"maxTotalHits": 5000},
                     "faceting": {"maxValuesPerFacet": 200},
@@ -193,5 +246,6 @@ class GymIndex:
             log.error(f"Error adding to meilisearch collection: {e}", exc_info=True)
             raise e
 
-    def delete_from_meilisearch_collection(self, data, collection_name: str):
-        pass
+    def delete_from_meilisearch_collection(self, links, collection_name: str):
+        filter = f"parent_link IN {links}"
+        self.meilisearch_client.index(collection_name).delete_documents(filter=filter)

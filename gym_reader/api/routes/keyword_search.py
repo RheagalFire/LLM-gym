@@ -12,7 +12,21 @@ router = APIRouter()
 async def keyword_search(request: Request, keyword: str, collection_name: str) -> Any:
     try:
         log.debug(request.headers)
-        all_attributes = meilisearch_client.index(collection_name).search(keyword)
+        search_settings = {
+            "attributesToHighlight": [
+                "parent_keywords",
+                "parent_summary",
+                "parent_title",
+            ],
+            "highlightPreTag": '<span class="highlight">',
+            "showMatchesPosition": True,
+            "highlightPostTag": "</span>",
+            "limit": 100,
+            "showRankingScore": True,
+        }
+        all_attributes = meilisearch_client.index(collection_name).search(
+            keyword, search_settings
+        )
         return JSONResponse(content=all_attributes)
     except Exception as e:
         log.error(e)
