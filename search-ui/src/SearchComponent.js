@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import Doodle from './assets/doodle_2.svg'; // Corrected import path
 
 // Debounce function to delay the execution of a function
 const debounce = (func, delay) => {
@@ -34,6 +35,7 @@ function SearchComponent() {
                 return;
             }
             const data = await response.json();
+            console.log("API Response:", data); // Log the API response
             setResults(data.hits || []);
         } catch (error) {
             console.error("Error fetching data:", error);
@@ -48,13 +50,6 @@ function SearchComponent() {
         debouncedSearch(keyword);
     }, [keyword, debouncedSearch]);
 
-    const truncateContent = (content, maxLength) => {
-        if (content.length > maxLength) {
-            return content.substring(0, maxLength) + '...';
-        }
-        return content;
-    };
-
     return (
         <div style={{ 
             display: 'flex', 
@@ -62,20 +57,24 @@ function SearchComponent() {
             alignItems: 'center', 
             justifyContent: 'center', 
             minHeight: '100vh', 
-            background: 'linear-gradient(to bottom, rgba(224, 247, 250, 1), rgba(224, 247, 250, 0.5))', // Gradient background
-            color: '#333',
+            background: 'linear-gradient(135deg, #a8c0ff, #3f2b96)', // Pastel blue gradient background
+            color: '#ffffff', // White text
             fontFamily: 'Arial, sans-serif'
         }}>
-            <h1 style={{ marginBottom: '40px', color: '#007BFF' }}>LLM-gym</h1>
+            <img src={Doodle} alt="LLM-gym Doodle" style={{ marginBottom: '40px', width: '150px' }} />
             <div style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
-                backgroundColor: '#ffffff', 
+                backgroundColor: '#3f2b96', 
                 borderRadius: '25px', 
-                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)', 
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)', 
                 padding: '10px 20px', 
                 width: '60%', 
-                maxWidth: '600px'
+                maxWidth: '600px',
+                transition: 'box-shadow 0.3s ease',
+                ':hover': {
+                    boxShadow: '0 6px 16px rgba(0, 0, 0, 0.7)'
+                }
             }}>
                 <input
                     type="text"
@@ -87,7 +86,10 @@ function SearchComponent() {
                         border: 'none', 
                         outline: 'none', 
                         fontSize: '16px', 
-                        padding: '10px'
+                        padding: '10px',
+                        backgroundColor: 'transparent', // Make background transparent
+                        color: '#ffffff',
+                        marginRight: '10px' // Add some space between input and button
                     }}
                 />
                 <button 
@@ -95,11 +97,15 @@ function SearchComponent() {
                     style={{ 
                         padding: '10px 20px', 
                         cursor: 'pointer', 
-                        backgroundColor: '#007BFF', 
-                        color: '#fff', 
+                        backgroundColor: '#ffffff', 
+                        color: '#3f2b96', 
                         border: 'none', 
                         borderRadius: '20px', 
-                        marginLeft: '10px'
+                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)',
+                        transition: 'background-color 0.3s ease',
+                        ':hover': {
+                            backgroundColor: '#e0e0e0'
+                        }
                     }}
                 >
                     Search
@@ -107,23 +113,23 @@ function SearchComponent() {
             </div>
             <div style={{ marginTop: '40px', width: '80%', maxWidth: '800px' }}>
                 {results.map((result, index) => (
-                    <div key={index} style={{ marginBottom: '20px', borderBottom: '1px solid #ccc', paddingBottom: '10px' }}>
-                        <a href={result.parent_link} style={{ textDecoration: 'none', color: '#007BFF', fontSize: '18px' }}>
-                            {result.parent_title}
+                    <div key={index} style={{ marginBottom: '20px', borderBottom: '1px solid #ffffff', paddingBottom: '10px' }}>
+                        <a href={result.parent_link} style={{ textDecoration: 'none', color: '#3f2b96', fontSize: '18px', fontWeight: 'bold' }}>
+                            <span dangerouslySetInnerHTML={{ __html: result._formatted.parent_title }} />
                         </a>
-                        <p style={{ color: '#666', fontSize: '14px' }}>
-                            {truncateContent(result.parent_content, 500)}
+                        <p style={{ color: '#ffffff', fontSize: '14px' }}>
+                            <span dangerouslySetInnerHTML={{ __html: result._formatted.parent_summary }} />
                         </p>
                         <div style={{ marginTop: '10px', display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-                            {result.parent_keywords.slice(0, 5).map((keyword, i) => (
+                            {result._formatted.parent_keywords.slice(0, 5).map((keyword, i) => (
                                 <span key={i} style={{ 
-                                    backgroundColor: '#007BFF', 
-                                    color: '#fff', 
+                                    backgroundColor: '#3f2b96', 
+                                    color: '#ffffff', 
                                     padding: '5px 10px', 
                                     borderRadius: '15px', 
                                     fontSize: '12px'
                                 }}>
-                                    {keyword}
+                                    <span dangerouslySetInnerHTML={{ __html: keyword }} />
                                 </span>
                             ))}
                         </div>

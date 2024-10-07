@@ -3,6 +3,7 @@ import json
 from gym_reader.settings import get_settings
 from gym_reader.clients.github_client import (
     fetch_file_diff,
+    fetch_file_content_at_commit,
 )
 from gym_reader.data_models import RepoConfig
 from gym_reader.agents.extractor_agent import ContentExtractorAgent, PayloadForIndexing
@@ -13,6 +14,7 @@ from gym_reader.clients.meilisearch_client import meilisearch_client
 import yaml
 import fnmatch
 import re
+from tqdm import tqdm
 
 extractor_agent = ContentExtractorAgent()
 gym_index = GymIndex(qdrant_client, meilisearch_client, openai_client)
@@ -70,6 +72,25 @@ def get_links_from_diff(file_diff_content):
             deleted_links.extend(urls)
 
     return added_links, deleted_links
+
+
+def extract_links(content):
+    """
+    Extracts all Markdown links from the provided content.
+
+    Args:
+        content (str): The Markdown content from which to extract links.
+
+    Returns:
+        list: A list of extracted URLs.
+    """
+    # Regular expression to match Markdown links: [text](url)
+    link_pattern = r"\[.*?\]\((https?://[^\s)]+)\)"
+
+    # Find all matches in the content
+    links = re.findall(link_pattern, content)
+
+    return links
 
 
 async def process_payload_for_push(payload, request):
@@ -149,9 +170,23 @@ async def push_action_handler(payload, request):
             continue
         # get the file diff
         file_diff = await fetch_file_diff(owner, repo, latest_commit_sha, github_token)
+        file_content = await fetch_file_content_at_commit(
+            owner, repo, file_detail["path"], latest_commit_sha, github_token
+        )
+        # get all the links from the file content
+        all_links = extract_links(file_content)
+        log.debug(f"All links: {all_links}")
+        # get the added and deleted links from the file diff
         added_links, deleted_links = get_links_from_diff(file_diff)
+        # if any deleted link is in added_link ,remove it from the deleted_links
+        deleted_links = [link for link in deleted_links if link not in added_links]
+        # let's check which links are present and which are not
+        added_links = [
+            link for link in all_links if not gym_index.check_if_link_exists(link, repo)
+        ]
+        log.debug(f"Added links: {added_links}")
         # for added links let's call the extractor agent
-        for added_link in added_links:
+        for added_link in tqdm(added_links, total=len(added_links)):
             # get the content from the link
             meta_to_add_to_index: PayloadForIndexing = extractor_agent.forward(
                 added_link
@@ -169,6 +204,14 @@ async def push_action_handler(payload, request):
                 log.error(f"Error adding to qdrant collection: {e}", exc_info=True)
                 continue
         # TODO: handle deleted links
-    log.info(f"Added links: {added_links}")
-    log.info(f"Deleted links: {deleted_links}")
-    return added_links, deleted_links, meta_to_add_to_index
+        try:
+            gym_index.delete_from_qdrant_collection(deleted_links, collection_name=repo)
+            gym_index.delete_from_meilisearch_collection(
+                deleted_links, collection_name=repo
+            )
+        except Exception as e:
+            log.error(f"Error deleting from qdrant collection: {e}", exc_info=True)
+            continue
+    log.debug(f"Added links: {added_links}")
+    log.debug(f"Deleted links: {deleted_links}")
+    return True
