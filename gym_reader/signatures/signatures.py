@@ -11,10 +11,10 @@ class GenerateAnswerFromContent(dspy.Signature):
     query: str = dspy.InputField(
         desc="The query to be answered. This query is to be answered based on the context provided to you below",
     )
-    summary_of_contents_of_links: Dict[str, str] = dspy.InputField(
+    summary_of_contents_of_links: List[Dict[str, str]] = dspy.InputField(
         desc="The summaries of the contents of the relevant pieces which should be used to answer the asked query. This is mapping of title to the content of the link",
     )
-    entire_content_of_the_link: str = dspy.InputField(
+    entire_content_of_the_link: List[str] = dspy.InputField(
         desc="The entire content of the links which should be referenced to answer the query. This is also the mapping of title to the content of the link",
     )
     generated_answer: str = dspy.OutputField(

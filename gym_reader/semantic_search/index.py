@@ -78,12 +78,12 @@ class GymIndex:
             collection_name,
             prefetch=[
                 models.Prefetch(
-                    query=list(summary_embedding.flatten()),
+                    query=summary_embedding,
                     using="summary",
                     limit=limit,
                 ),
                 models.Prefetch(
-                    query=list(content_embedding.flatten()),
+                    query=content_embedding,
                     using="content",
                     limit=limit,
                 ),
