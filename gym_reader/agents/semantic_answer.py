@@ -6,6 +6,8 @@ from gym_reader.programmes.programmes import (
 from typing import List, Dict
 import logging
 from gym_reader.clients.qdrant_client import qdrant_client
+from gym_reader.clients.meilisearch_client import meilisearch_client
+from gym_reader.clients.openai_client import openai_client
 from gym_reader.signatures.signatures import (
     GenerateAnswerFromContent,
     QueryRewriterSignature,
@@ -30,7 +32,11 @@ class ContextAwareAnswerAgent(Agent):
         The agent uses query rewriting based on conversation history to improve search results.
         """
         super().__init__(DspyProgramme(signature=GenerateAnswerFromContent))
-        self.hybrid_search = HybridSearch(qdrant_client=qdrant_client)
+        self.hybrid_search = HybridSearch(
+            qdrant_client=qdrant_client,
+            meilisearch_client=meilisearch_client,
+            openai_client=openai_client,
+        )
         self.query_rewriter = DspySimpleProgramme(signature=QueryRewriterSignature)
 
     def forward(
@@ -51,12 +57,12 @@ class ContextAwareAnswerAgent(Agent):
             query=rewritten_query, collection_name=collection_name
         )
         # For now pass the top result to the programme
-
+        top_result = search_results[0]
         # Pass the top result to the programme
         self.prediction_object = self.programme.forward(
             query=rewritten_query,
-            summary_of_contents_of_links=search_results.summary,
-            entire_content_of_the_link=search_results.entire_content_of_the_link,
+            summary_of_contents_of_links=top_result.summary,
+            entire_content_of_the_link=top_result.entire_content_of_the_link,
             request_id=request_id,
             model=model,
         )
@@ -97,7 +103,7 @@ class ContextAwareAnswerAgent(Agent):
         """
         log.debug(f"Original query: {query}")
         rewritten_query = self.query_rewriter.forward(
-            conversation_history=conversation_history,
+            conversation_history=str(conversation_history),
             query=query,
             request_id=request_id,
             model=model,

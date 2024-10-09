@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Dict
+from typing import List, Dict, Optional, Any
 from enum import Enum
 
 
@@ -30,3 +30,24 @@ class PayloadForIndexing(BaseModel):
     parent_summary: str
     parent_title: str
     parent_keywords: List[str]
+
+
+class Message(BaseModel):
+    content: str
+    role: str
+
+
+class ChatPayload(BaseModel):
+    messages: List[Message]
+    collection_name: str
+
+
+class Answer(BaseModel):
+    content: str
+    role: str
+
+
+class ResponseModel(BaseModel):
+    data: Optional[Answer] = None
+    meta: Optional[Any] = None
+    error: Optional[Any] = None
