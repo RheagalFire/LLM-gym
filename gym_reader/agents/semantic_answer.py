@@ -56,13 +56,11 @@ class ContextAwareAnswerAgent(Agent):
         search_results = self.hybrid_search.search(
             query=rewritten_query, collection_name=collection_name
         )
-        # For now pass the top result to the programme
-        top_result = search_results[0]
         # Pass the top result to the programme
         self.prediction_object = self.programme.forward(
             query=rewritten_query,
-            summary_of_contents_of_links=top_result.summary,
-            entire_content_of_the_link=top_result.entire_content_of_the_link,
+            summary_of_contents_of_links=search_results.summary,
+            entire_content_of_the_link=search_results.entire_content_of_the_link,
             request_id=request_id,
             model=model,
         )

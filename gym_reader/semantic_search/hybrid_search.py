@@ -1,15 +1,13 @@
-from qdrant_client import QdrantClient
+from gym_reader.semantic_search.preprocessor import (
+    Preprocessor,
+)  # Import the Preprocessor class
+from qdrant_client import QdrantClient, models  # Imported models
 from meilisearch import Client as MeilisearchClient
 from gym_reader.data_models import SearchResult
 from openai import OpenAI
-from gym_reader.logger import get_logger
-from gym_reader.semantic_search.index import GymIndex
-from typing import List
-
-log = get_logger(__name__)
 
 
-class HybridSearch(GymIndex):
+class HybridSearch(Preprocessor):  # Inherit from Preprocessor
     def __init__(
         self,
         qdrant_client: QdrantClient,
@@ -18,20 +16,46 @@ class HybridSearch(GymIndex):
     ):
         super().__init__(qdrant_client, meilisearch_client, openai_client)
 
-    def search(
-        self, query: str, collection_name: str, limit: int = 2
-    ) -> List[SearchResult]:
-        # Search the summary Index
+    def search(self, query: str, collection_name: str, limit: int = 3) -> SearchResult:
         results = self.search_from_collection(query, collection_name, limit)
-        log.debug(results)
-        return [
-            SearchResult(
-                summary=[
-                    {result.payload["parent_link"]: result.payload["parent_summary"]}
-                ],
-                content_score=[result.score],
-                summary_score=[result.score],
-                entire_content_of_the_link=[result.payload["parent_content"]],
-            )
-            for result in results.points
-        ]
+        self.logger.debug(results)
+        return SearchResult(
+            summary=[
+                {result.payload["parent_link"]: result.payload["parent_summary"]}
+                for result in results.points
+            ],
+            content_score=[result.score for result in results.points],
+            summary_score=[result.score for result in results.points],
+            entire_content_of_the_link=[
+                result.payload["parent_content"] for result in results.points
+            ],
+        )
+
+    def search_from_collection(self, query: str, collection_name: str, limit: int = 10):
+        summary_embedding = self.get_embedding(
+            query,
+            dimension=self.default_embedding_dimension_for_summary,
+            provider=self.default_embedding_provider_for_summary,
+        )
+        content_embedding = self.get_embedding(
+            query,
+            dimension=self.default_embedding_dimension_for_content,
+            provider=self.default_embedding_provider_for_content,
+        )
+        results = self.qdrant_client.query_points(
+            collection_name,
+            prefetch=[
+                models.Prefetch(
+                    query=summary_embedding,
+                    using="summary",
+                    limit=limit,
+                ),
+                models.Prefetch(
+                    query=content_embedding,
+                    using="content",
+                    limit=limit,
+                ),
+            ],
+            query=models.FusionQuery(fusion=models.Fusion.RRF),
+        )
+        return results
