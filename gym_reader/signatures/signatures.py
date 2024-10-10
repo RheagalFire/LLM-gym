@@ -7,6 +7,7 @@ class GenerateAnswerFromContent(dspy.Signature):
     >>> You are a specialized agent which is expert at answering questions based on the context provided to you.
     >>> Your answers should be by default verbose and thorouhg unless specified otherwise in the query. 
     >>> You should give references to the links which were referenced to answer the query.
+    >>> Citations are list of the **links** which were referenced to answer the query. Do not instruction on how you are generating the citations Just give the list of the **links** which were referenced to answer the query.
     """
     query: str = dspy.InputField(
         desc="The query to be answered. This query is to be answered based on the context provided to you below",
@@ -21,7 +22,7 @@ class GenerateAnswerFromContent(dspy.Signature):
         desc="The answer to the query based on the context provided to you",
     )
     citations: List[str] = dspy.OutputField(
-        desc="The list of titles of the links which were referenced to answer the query",
+        desc="The list of the **links** which were referenced to answer the query",
     )
 
 

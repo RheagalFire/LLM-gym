@@ -1,120 +1,26 @@
 from qdrant_client import QdrantClient
-from typing import Optional
 from meilisearch import Client as MeilisearchClient
 from qdrant_client import models
 from gym_reader.data_models import PayloadForIndexing
 from openai import OpenAI
 from gym_reader.logger import get_logger
-from fastembed import TextEmbedding
-import tiktoken
+from gym_reader.semantic_search.preprocessor import (
+    Preprocessor,
+)  # Import the new Preprocessor class
 
 log = get_logger(__name__)
 
 
-class GymIndex:
+class GymIndex(Preprocessor):
     def __init__(
         self,
         qdrant_client: QdrantClient,
         meilisearch_client: MeilisearchClient,
         openai_client: OpenAI,
     ):
-        self.qdrant_client = qdrant_client
-        self.meilisearch_client = meilisearch_client
-        self.openai_client = openai_client
-        self.default_embedding_dimension_for_summary = 1536
-        self.default_embedding_provider_for_summary = "openai"
-        self.default_embedding_dimension_for_content = 1536
-        self.default_embedding_provider_for_content = "openai"
-        self.text_embedding_model = TextEmbedding("BAAI/bge-base-en")
-        self.tokenizer = tiktoken.get_encoding("cl100k_base")  # Initialize tokenizer
-
-    def get_embedding(
-        self,
-        text: str,
-        model: str = "text-embedding-3-small",
-        dimension: Optional[int] = 1536,
-        provider: str = "openai",
-    ):
-        if provider == "openai":
-            try:
-                # assume 1 word = 4 tokens (for simplicity)
-                # TODO: use tiktoken
-                MAX_TOKENS = 7000
-                tokens = self.tokenizer.encode(text)
-                # TODO: 1. Use Averaging of the embedding for the truncated text
-                # TODO: 2. Chunk Different parts of the text and embed them separately
-                if len(tokens) > MAX_TOKENS:
-                    tokens = tokens[:MAX_TOKENS]
-                    text = self.tokenizer.decode(tokens)
-                response = self.openai_client.embeddings.create(
-                    model=model,
-                    input=text,
-                    encoding_format="float",
-                    dimensions=dimension,
-                )
-                return response.data[0].embedding
-            except Exception as e:
-                log.error(f"Error getting embedding: {e}", exc_info=True)
-                raise e
-        else:
-            # it will only process 512 sequence at length
-            return list(self.text_embedding_model.embed(text))
-
-    def search_from_collection(self, query: str, collection_name: str, limit: int = 10):
-        # Search the summary Index
-        summary_embedding = self.get_embedding(
-            query,
-            dimension=self.default_embedding_dimension_for_summary,
-            provider=self.default_embedding_provider_for_summary,
-        )
-        # Search the content Index
-        content_embedding = self.get_embedding(
-            query,
-            dimension=self.default_embedding_dimension_for_content,
-            provider=self.default_embedding_provider_for_content,
-        )
-        # Combine the results
-        results = self.qdrant_client.query_points(
-            collection_name,
-            prefetch=[
-                models.Prefetch(
-                    query=summary_embedding,
-                    using="summary",
-                    limit=limit,
-                ),
-                models.Prefetch(
-                    query=content_embedding,
-                    using="content",
-                    limit=limit,
-                ),
-            ],
-            query=models.FusionQuery(fusion=models.Fusion.RRF),
-        )
-        return results
-
-    def check_if_link_exists(self, link: str, collection_name: str):
-        # First check if the collection exists or not
-        existing_collections = [
-            collection.name
-            for collection in self.qdrant_client.get_collections().collections
-        ]
-        if collection_name not in existing_collections:
-            return False
-        # let's check if the link exists in the qdrant collection
-        results = self.qdrant_client.scroll(
-            collection_name=collection_name,
-            scroll_filter=models.Filter(
-                should=[
-                    models.FieldCondition(
-                        key="parent_link", match=models.MatchValue(value=link)
-                    )
-                ]
-            ),
-            limit=1,
-        )
-        if results:
-            return True
-        return False
+        super().__init__(
+            qdrant_client, meilisearch_client, openai_client
+        )  # Initialize Preprocessor
 
     def add_to_qdrant_collection(self, data: PayloadForIndexing, collection_name: str):
         existing_collections = [
