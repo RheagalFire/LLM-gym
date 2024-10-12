@@ -19,4 +19,4 @@
 - [Converting to GGUF Tools](https://www.substratus.ai/blog/converting-hf-model-gguf-model) : Converting LLM to GGUF Format!
 
 ### About Vector Databases and Search Algorithms
-- [HNSW Algorithm](https://lukesalamone.github.io/posts/how-does-hnsw-work/) : It shows the intution behind how the HNSW algorithm works!
+- [HNSW Algorithm](https://lukesalamone.github.io/posts/how-does-hnsw-work/) : It shows the intution behind how the HNSW algorithm works.
