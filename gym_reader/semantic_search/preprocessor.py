@@ -19,7 +19,7 @@ class Preprocessor:
         self.openai_client = openai_client
         # Embedding Model and Tokenizer
         self.tokenizer = tiktoken.get_encoding("cl100k_base")  # Initialize tokenizer
-        self.text_embedding_model = TextEmbedding("BAAI/bge-base-en")
+        self.text_embedding_model = TextEmbedding("BAAI/bge-small-en-v1.5")
         self.logger = get_logger(__name__)
         # Default embedding dimensions and providers
         self.default_embedding_dimension_for_summary = 1536
@@ -62,7 +62,7 @@ class Preprocessor:
             ]
             if collection_name not in existing_collections:
                 return False
-            results = self.qdrant_client.scroll(
+            results, offset = self.qdrant_client.scroll(
                 collection_name=collection_name,
                 scroll_filter=models.Filter(
                     should=[

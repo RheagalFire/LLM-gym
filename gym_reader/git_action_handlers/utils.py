@@ -203,12 +203,15 @@ async def push_action_handler(payload, request):
             except Exception as e:
                 log.error(f"Error adding to qdrant collection: {e}", exc_info=True)
                 continue
-        # TODO: handle deleted links
+
         try:
-            gym_index.delete_from_qdrant_collection(deleted_links, collection_name=repo)
-            gym_index.delete_from_meilisearch_collection(
-                deleted_links, collection_name=repo
-            )
+            if deleted_links:
+                gym_index.delete_from_qdrant_collection(
+                    deleted_links, collection_name=repo
+                )
+                gym_index.delete_from_meilisearch_collection(
+                    deleted_links, collection_name=repo
+                )
         except Exception as e:
             log.error(f"Error deleting from qdrant collection: {e}", exc_info=True)
             continue
