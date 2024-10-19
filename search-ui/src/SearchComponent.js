@@ -295,11 +295,58 @@ function SearchComponent() {
                     padding: '15px',
                     maxWidth: '70%',
                     wordWrap: 'break-word',
+                    overflowWrap: 'break-word',
                     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
                   }}
                 >
-                  {/* Render Markdown content */}
-                  <ReactMarkdown>{message.content}</ReactMarkdown>
+                  <div
+                    style={{
+                      maxWidth: '100%',
+                      overflowWrap: 'break-word',
+                      wordWrap: 'break-word',
+                      wordBreak: 'break-word',
+                      whiteSpace: 'pre-wrap',
+                    }}
+                  >
+                    <ReactMarkdown
+                      components={{
+                        pre: ({ node, ...props }) => (
+                          <pre
+                            {...props}
+                            style={{
+                              whiteSpace: 'pre-wrap',
+                              wordWrap: 'break-word',
+                              overflowWrap: 'break-word',
+                              fontSize: '12px', // Decrease font size for code blocks
+                              backgroundColor: '#f5f5f5', // Optional: change background color
+                              padding: '10px', // Optional: add some padding
+                              borderRadius: '5px', // Optional: rounded corners
+                              overflowX: 'auto', // Add horizontal scroll if necessary
+                            }}
+                          />
+                        ),
+                        code: ({ node, inline, className, children, ...props }) => (
+                          <code
+                            {...props}
+                            style={{
+                              whiteSpace: 'pre-wrap',
+                              wordWrap: 'break-word',
+                              overflowWrap: 'break-word',
+                              fontSize: '12px', // Decrease font size for code
+                              backgroundColor: inline ? '#f5f5f5' : 'transparent', // Inline code styling
+                              padding: inline ? '2px 4px' : '0', // Inline code padding
+                              borderRadius: '3px', // Inline code rounded corners
+                              inline: false,
+                            }}
+                          >
+                            {children}
+                          </code>
+                        ),
+                      }}
+                    >
+                      {message.content}
+                    </ReactMarkdown>
+                  </div>
                   {/* Display citations if available */}
                   {message.citations && message.citations.length > 0 && (
                     <div style={{ marginTop: '15px', fontSize: '14px' }}>
@@ -402,7 +449,14 @@ function SearchComponent() {
                   dangerouslySetInnerHTML={{ __html: result._formatted.parent_title }}
                 />
               </a>
-              <p style={{ color: '#ffffff', fontSize: '14px' }}>
+              <p
+                style={{
+                  color: '#ffffff',
+                  fontSize: '14px',
+                  wordWrap: 'break-word',
+                  overflowWrap: 'break-word',
+                }}
+              >
                 <span
                   dangerouslySetInnerHTML={{ __html: result._formatted.parent_summary }}
                 />
