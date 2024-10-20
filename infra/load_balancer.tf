@@ -13,9 +13,17 @@ resource "aws_lb" "alb" {
 #   target_type = "ip"
 # }
 
-resource "aws_lb_target_group" "fastapi_tg_2" {
-  name        = "fastapi-tg-2"
-  port        = 8000
+# resource "aws_lb_target_group" "fastapi_tg_2" {
+#   name        = "fastapi-tg-2"
+#   port        = 8000
+#   protocol    = "HTTP"
+#   vpc_id      = aws_vpc.main.id
+#   target_type = "ip"
+# }
+
+resource "aws_lb_target_group" "search_ui_tg" {
+  name        = "search-ui-tg"
+  port        = 3000
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
   target_type = "ip"
@@ -29,7 +37,21 @@ resource "aws_lb_listener" "http" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.fastapi_tg_2.arn
+    target_group_arn = aws_lb_target_group.search_ui_tg.arn
+  }
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_lb_listener" "https" {
+  load_balancer_arn = aws_lb.alb.arn
+  port              = "443"
+  protocol          = "HTTPS"
+  certificate_arn   = var.certificate_arn
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.search_ui_tg.arn
   }
   lifecycle {
     create_before_destroy = true

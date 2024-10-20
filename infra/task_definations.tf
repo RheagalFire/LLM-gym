@@ -148,3 +148,41 @@ resource "aws_ecs_task_definition" "meilisearch" {
     }
   ])
 }
+
+resource "aws_ecs_task_definition" "search_ui" {
+  family                   = "search-ui"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = "256"
+  memory                   = "512"
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+
+  container_definitions = jsonencode([
+    {
+      name      = "search-ui"
+      image     = "418721317505.dkr.ecr.us-east-1.amazonaws.com/search-ui:latest" # I will replace it later
+      essential = true
+      portMappings = [
+        {
+          containerPort = 3000
+          hostPort      = 3000
+          protocol      = "tcp"
+        }
+      ]
+      environment = [
+        {
+          name  = "REACT_APP_API_BASE_URL" // App Base URL
+          value = "http://localhost:8000"
+        }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = "/ecs/search-ui"
+          awslogs-region        = var.region
+          awslogs-stream-prefix = "ecs"
+        }
+      }
+    }
+  ])
+}

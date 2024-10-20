@@ -61,3 +61,9 @@ variable "spider_api_key" {
   type        = string
   sensitive   = true
 }
+
+variable "certificate_arn" {
+  description = "ARN of the certificate for the domain"
+  type        = string
+  default     = "arn:aws:acm:us-east-1:418721317505:certificate/fd513178-d939-4608-b55c-af65f488ce3f"
+}
