@@ -12,3 +12,8 @@ resource "aws_cloudwatch_log_group" "meilisearch_log_group" {
   name              = "/ecs/meilisearch"
   retention_in_days = 7
 }
+
+resource "aws_cloudwatch_log_group" "search_ui_log_group" {
+  name              = "/ecs/search-ui"
+  retention_in_days = 7
+}

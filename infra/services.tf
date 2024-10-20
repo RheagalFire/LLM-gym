@@ -11,12 +11,12 @@ resource "aws_ecs_service" "fastapi_app" {
     assign_public_ip = true
   }
   # Add Load Balancer Mapping here
-  load_balancer {
-    target_group_arn = aws_lb_target_group.fastapi_tg_2.arn
-    container_name   = "fastapi-app"
-    container_port   = 8000
-  }
-  depends_on = [aws_lb_listener.http, aws_lb_target_group.fastapi_tg_2, aws_iam_role_policy_attachment.ecs_task_execution_role_policy]
+#   load_balancer {
+#     target_group_arn = aws_lb_target_group.fastapi_tg_2.arn
+#     container_name   = "fastapi-app"
+#     container_port   = 8000
+#   }
+  depends_on = [aws_lb_listener.http, aws_iam_role_policy_attachment.ecs_task_execution_role_policy]
 }
 #
 resource "aws_ecs_service" "qdrant" {
@@ -33,4 +33,25 @@ resource "aws_ecs_service" "qdrant" {
   }
 
   depends_on = [aws_iam_role_policy_attachment.ecs_task_execution_role_policy]
+}
+
+resource "aws_ecs_service" "search_ui" {
+  name            = "search-ui-service"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.search_ui.arn
+  desired_count   = 1
+  launch_type     = "FARGATE"
+  
+  network_configuration {
+    subnets         = [aws_subnet.public_1.id, aws_subnet.public_2.id]
+    security_groups = [aws_security_group.ecs_sg.id]
+    assign_public_ip = true
+  }
+  load_balancer {
+    target_group_arn = aws_lb_target_group.search_ui_tg.arn
+    container_name   = "search-ui"
+    container_port   = 3000
+  }
+
+  depends_on = [aws_lb_listener.http, aws_lb_target_group.search_ui_tg, aws_iam_role_policy_attachment.ecs_task_execution_role_policy]
 }
