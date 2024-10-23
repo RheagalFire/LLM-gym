@@ -14,7 +14,7 @@
 - [Hyde Query Rewritting](https://www.pondhouse-data.com/blog/advanced-rag-hypothetical-document-embeddings) : Generate a hypothetical Document from the Query and search against that in the vector space!
 - [Late Chunking Blog](https://weaviate.io/blog/late-chunking): Late chunking the sweet spot between naive chunking retrieval and late interaction based retrieval!
 - [Contextual Rag](https://www.anthropic.com/news/contextual-retrieval) : While Indexing Ask LLM to contextualize the chunk and then index it!
-- [Retrieval via Late Interaction Models](https://huggingface.co/blog/fsommers/document-similarity-colpali)
+- [Retrieval via Late Interaction Models](https://huggingface.co/blog/fsommers/document-similarity-colpali) : Colipali and How it used Bag of Words for Document Similarity
 
 ### Some Essential Deployment Tools
 - [Converting to GGUF Tools](https://www.substratus.ai/blog/converting-hf-model-gguf-model) : Converting LLM to GGUF Format!
