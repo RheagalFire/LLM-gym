@@ -17,7 +17,7 @@
 - [Retrieval via Late Interaction Models](https://huggingface.co/blog/fsommers/document-similarity-colpali) : Colipali and How it used Bag of Words for Document Similarity
 
 ### Some Essential Deployment Tools
-- [Converting to GGUF Tools](https://www.substratus.ai/blog/converting-hf-model-gguf-model) : Converting LLM to GGUF Format!
+- [Converting to GGUF Tools](https://www.substratus.ai/blog/converting-hf-model-gguf-model) : Converting LLM to GGUF Format.
 
 ### About Vector Databases and Search Algorithms
 - [HNSW Algorithm](https://lukesalamone.github.io/posts/how-does-hnsw-work/) : It shows the intution behind how the HNSW algorithm works.
