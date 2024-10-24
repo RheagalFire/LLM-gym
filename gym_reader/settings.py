@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     CONFIG_FILE_PATH: str = "gym_reader/config.yaml"
     TAVILY_API_KEY: str = ""
     SPIDER_API_KEY: str = ""
+    GITHUB_SECRET_KEY_FOR_WEBHOOK: str = ""
 
     def is_dev(self):
         return self.ENVIRONMENT == Environment.Development

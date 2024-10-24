@@ -4,8 +4,11 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware import Middleware
 from starlette.requests import Request
+from starlette.responses import Response
 import uuid
 import time
+import hmac
+import hashlib
 from gym_reader.settings import get_settings
 from gym_reader.api.cache_tools import cache
 
@@ -46,6 +49,40 @@ class TokenTrackingMiddleware(BaseHTTPMiddleware):
         return response
 
 
+# Middleware to verify HMAC signatures
+class HMACVerificationMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # Retrieve HMAC signature from headers
+        hmac_signature = request.headers.get("X-HMAC-Signature")
+        if not hmac_signature:
+            log.warning("Missing X-HMAC-Signature header")
+            return Response("Missing HMAC signature", status_code=400)
+
+        # Read request body
+        body = await request.body()
+
+        # Get the secret key from settings
+        secret_key = settings.HMAC_SECRET_KEY
+
+        if not secret_key:
+            log.error("HMAC_SECRET_KEY is not set in settings")
+            return Response("Server configuration error", status_code=500)
+
+        # Compute HMAC using the secret key
+        computed_hmac = hmac.new(
+            key=secret_key.encode(), msg=body, digestmod=hashlib.sha256
+        ).hexdigest()
+
+        # Compare the provided HMAC with the computed HMAC
+        if not hmac.compare_digest(computed_hmac, hmac_signature):
+            log.warning("Invalid HMAC signature")
+            return Response("Invalid HMAC signature", status_code=400)
+
+        # Proceed to the next middleware or request handler
+        response = await call_next(request)
+        return response
+
+
 # Middleware to add processing time
 class ProcessingTimeMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -69,12 +106,14 @@ CORS_MIDDLEWARE = Middleware(
 GZIP_MIDDLEWARE = Middleware(GZipMiddleware)
 PROCESSING_TIME_MIDDLEWARE = Middleware(ProcessingTimeMiddleware)
 TOKEN_TRACKING_MIDDLEWARE = Middleware(TokenTrackingMiddleware)
+HMAC_VERIFICATION_MIDDLEWARE = Middleware(HMACVerificationMiddleware)
 
 ALL_MIDDLEWARES = [
     GZIP_MIDDLEWARE,
     PROCESSING_TIME_MIDDLEWARE,
     CORS_MIDDLEWARE,
     TOKEN_TRACKING_MIDDLEWARE,
+    HMAC_VERIFICATION_MIDDLEWARE,
 ]
 
 __all__ = [
@@ -83,4 +122,5 @@ __all__ = [
     "CORS_MIDDLEWARE",
     "ALL_MIDDLEWARES",
     "TokenTrackingMiddleware",
+    "HMAC_VERIFICATION_MIDDLEWARE",
 ]
