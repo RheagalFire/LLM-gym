@@ -6,7 +6,6 @@ resource "aws_ecs_task_definition" "fastapi_app" {
   cpu                      = "512"
   memory                   = "1024"
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
-
   container_definitions = jsonencode([
     {
       name      = "fastapi-app"
@@ -19,8 +18,8 @@ resource "aws_ecs_task_definition" "fastapi_app" {
           protocol      = "tcp"
         }
       ]
-      environment = [
-        {
+  environment = [
+    {
           name  = "ENVIRONMENT"
           value = "DEV"
         },
@@ -104,6 +103,13 @@ resource "aws_ecs_task_definition" "qdrant" {
           protocol      = "tcp"
         }
       ]
+      mountPoints = [
+        {
+          sourceVolume  = "qdrant-data"
+          containerPath = "/qdrant/storage"
+          readOnly      = false
+        }
+      ]
       logConfiguration = {
         logDriver = "awslogs"
         options = {
@@ -114,6 +120,18 @@ resource "aws_ecs_task_definition" "qdrant" {
       }
     }
   ])
+  volume {
+    name = "qdrant-data"
+    efs_volume_configuration {
+      file_system_id          = aws_efs_file_system.qdrant_fs.id
+      root_directory          = "/"
+      transit_encryption      = "ENABLED"
+      authorization_config {
+        access_point_id = null
+        iam             = "DISABLED"
+      }
+    }
+  }
 }
 
 # Meilisearch Service
@@ -137,6 +155,13 @@ resource "aws_ecs_task_definition" "meilisearch" {
           protocol      = "tcp"
         }
       ]
+      mountPoints = [
+        {
+          sourceVolume  = "meilisearch-data"
+          containerPath = "/meili_data"
+          readOnly      = false
+        }
+      ]
       logConfiguration = {
         logDriver = "awslogs"
         options = {
@@ -147,6 +172,18 @@ resource "aws_ecs_task_definition" "meilisearch" {
       }
     }
   ])
+  volume {
+    name = "meilisearch-data"
+    efs_volume_configuration {
+      file_system_id          = aws_efs_file_system.meilisearch_fs.id
+      root_directory          = "/"
+      transit_encryption      = "ENABLED"
+      authorization_config {
+        access_point_id = null
+        iam             = "DISABLED"
+      }
+    }
+  }
 }
 
 resource "aws_ecs_task_definition" "search_ui" {
