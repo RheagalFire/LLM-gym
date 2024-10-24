@@ -72,7 +72,7 @@ class HMACVerificationMiddleware(BaseHTTPMiddleware):
         computed_hmac = hmac.new(
             key=secret_key.encode(), msg=body, digestmod=hashlib.sha256
         ).hexdigest()
-
+        computed_hmac = f"sha256={computed_hmac}"
         # Compare the provided HMAC with the computed HMAC
         if not hmac.compare_digest(computed_hmac, hmac_signature):
             log.warning(
