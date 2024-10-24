@@ -53,7 +53,7 @@ class TokenTrackingMiddleware(BaseHTTPMiddleware):
 class HMACVerificationMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         # Retrieve HMAC signature from headers
-        hmac_signature = request.headers.get("X-HMAC-Signature")
+        hmac_signature = request.headers.get("X-Hub-Signature-256")
         if not hmac_signature:
             log.warning("Missing X-HMAC-Signature header")
             return Response("Missing HMAC signature", status_code=400)
