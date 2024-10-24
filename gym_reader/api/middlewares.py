@@ -62,10 +62,10 @@ class HMACVerificationMiddleware(BaseHTTPMiddleware):
         body = await request.body()
 
         # Get the secret key from settings
-        secret_key = settings.HMAC_SECRET_KEY
+        secret_key = settings.GITHUB_SECRET_KEY_FOR_WEBHOOK
 
         if not secret_key:
-            log.error("HMAC_SECRET_KEY is not set in settings")
+            log.error("GITHUB_SECRET_KEY_FOR_WEBHOOK is not set in settings")
             return Response("Server configuration error", status_code=500)
 
         # Compute HMAC using the secret key
