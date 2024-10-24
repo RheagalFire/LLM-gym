@@ -1,6 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from gym_reader.settings import get_settings, initialize_dspy_with_configs
-from gym_reader.api.middlewares import ALL_MIDDLEWARES
+from gym_reader.api.middlewares import ALL_MIDDLEWARES, HMACVerificationMiddleware
 from gym_reader.api.routes import git_sync, keyword_search, contextual_chat
 
 cfg = get_settings()
