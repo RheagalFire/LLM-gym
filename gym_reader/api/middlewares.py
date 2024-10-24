@@ -75,7 +75,9 @@ class HMACVerificationMiddleware(BaseHTTPMiddleware):
 
         # Compare the provided HMAC with the computed HMAC
         if not hmac.compare_digest(computed_hmac, hmac_signature):
-            log.warning("Invalid HMAC signature")
+            log.warning(
+                f"Invalid HMAC signature , received: {hmac_signature}, computed: {computed_hmac}"
+            )
             return Response("Invalid HMAC signature", status_code=400)
 
         # Proceed to the next middleware or request handler
