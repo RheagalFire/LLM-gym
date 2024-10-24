@@ -29,7 +29,8 @@ resource "aws_iam_policy" "ecs_secrets_policy" {
         Effect   = "Allow"
         Action   = [
           "secretsmanager:GetSecretValue",
-          "secretsmanager:DescribeSecret"
+          "secretsmanager:DescribeSecret",
+
         ]
         Resource = [
           aws_secretsmanager_secret.openai_api_key.arn,
@@ -46,4 +47,31 @@ resource "aws_iam_policy" "ecs_secrets_policy" {
 resource "aws_iam_role_policy_attachment" "ecs_secrets_policy_attachment" {
   role       = aws_iam_role.ecs_task_execution_role.name
   policy_arn = aws_iam_policy.ecs_secrets_policy.arn
+}
+
+# EFS Access Policy
+resource "aws_iam_policy" "ecs_task_efs_policy" {
+  name        = "ecs-task-efs-policy"
+  description = "Policy to allow ECS tasks to access EFS"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect : "Allow"
+        Action : [
+          "elasticfilesystem:ClientMount",
+          "elasticfilesystem:ClientWrite",
+          "elasticfilesystem:DescribeMountTargets"
+        ]
+        Resource : "*"
+      }
+    ]
+  })
+}
+
+# Attach EFS Access Policy to ECS Task Execution Role
+resource "aws_iam_role_policy_attachment" "ecs_task_efs_policy_attachment" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = aws_iam_policy.ecs_task_efs_policy.arn
 }

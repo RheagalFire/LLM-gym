@@ -1,0 +1,61 @@
+name: Build and Publish Docker Images to ECR
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        type: choice
+        description: 'Select the service to build Docker image from'
+        options:
+          - search-ui
+          - gym_reader
+        required: true
+
+env:
+  AWS_REGION: ap-south-1  # Change to your AWS region
+  ECR_ACCOUNT_ID: 241261420427  # Your AWS account ID
+
+jobs:
+  build_and_publish_docker_image:
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ env.ECR_ACCOUNT_ID }}:role/github
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Get version
+        id: version
+        run: |
+          echo "VERSION=$(date +'%Y.%m.%d-%H%M%S')" >> $GITHUB_ENV
+
+      - name: Set image tag name
+        id: set_image_tag
+        run: |
+          SERVICE_NAME=${{ github.event.inputs.service }}
+          echo "IMAGE_TAG=${{ env.ECR_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${SERVICE_NAME}:${{ env.VERSION }}" >> $GITHUB_ENV
+
+      - name: Build and push Docker images
+        uses: docker/build-push-action@v4
+        with:
+          push: true
+          tags: ${{ env.IMAGE_TAG }}
+          context: ${{ github.event.inputs.service }}/
+          file: ${{ github.event.inputs.service }}/Dockerfile

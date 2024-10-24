@@ -2,7 +2,14 @@ variable "region" {
   description = "AWS Region to deploy resources"
   default     = "us-east-1"
 }
-
+variable "qdrant_host_header" {
+  description = "Host header for the Qdrant service"
+  default     = "qdrant.lmgym.com"
+}
+variable "meilisearch_host_header" {
+  description = "Host header for the Meilisearch service"
+  default     = "mili.lmgym.com"
+}
 variable "aws_account_id" {
   description = "Your AWS Account ID"
 }
