@@ -1,0 +1,30 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator python_client {
+  provider             = "prisma-client-py"
+  recursive_type_depth = "5"
+  interface            = "asyncio"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url = env("DIRECT_URL")
+}
+enum DocumentType {
+  Link
+  Markdown
+  PDF
+}
+
+model DocumentRecords {
+  uuid        String   @id @default(uuid())
+  url         String
+  type        DocumentType
+  is_indexed  Boolean  @default(false)
+  is_deleted  Boolean  @default(false)
+  is_updated  Boolean  @default(false)
+  updated_at  DateTime @updatedAt
+  created_at  DateTime @default(now())
+}
