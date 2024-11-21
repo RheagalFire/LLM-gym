@@ -975,6 +975,28 @@ protobuf = ">=5.26.1,<6.0dev"
 setuptools = "*"
 
 [[package]]
+name = "gym-db"
+version = "0.1.0"
+description = "All database operations for gym-reader"
+optional = false
+python-versions = "^3.11"
+files = []
+develop = true
+
+[package.dependencies]
+cachetools = "^5.5.0"
+colorlog = "^6.8.2"
+prisma = "^0.15.0"
+pydantic = "^2.9.2"
+pydantic-settings = "^2.6.0"
+python-multipart = "^0.0.12"
+structlog = "^24.4.0"
+
+[package.source]
+type = "directory"
+url = "../gym_db"
+
+[[package]]
 name = "h11"
 version = "0.14.0"
 description = "A pure-Python, bring-your-own-I/O implementation of HTTP/1.1"
@@ -3798,4 +3820,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "42ef4def4a4862ca4c14372388c8100193ec33db13e365f000a6db6bf45704c8"
+content-hash = "ce1af4d19230dbb41055dfce401fa7dc3b59a75538373c6585071cc0d2501f8a"

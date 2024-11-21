@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Doodle from './assets/doodle.svg';
 import ReactMarkdown from 'react-markdown';
+import { REACT_APP_API_BASE_URL,SECRET_KEY_FOR_API } from './config';
+
+
 
 // Debounce function to delay the execution of a function
 const debounce = (func, delay) => {
@@ -28,11 +31,16 @@ function SearchComponent() {
       return;
     }
     try {
-      const apiUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001';
+      const apiUrl = REACT_APP_API_BASE_URL || 'http://localhost:8001';
       const response = await fetch(
         `${apiUrl}/api/v1/keyword_search?keyword=${encodeURIComponent(
           searchTerm
-        )}&collection_name=LLM-gym`
+        )}&collection_name=LLM-gym`,
+        {
+          headers: {
+            'X-Hub-Signature-256': SECRET_KEY_FOR_API, // Replace with actual signature value
+          },
+        }
       );
       if (!response.ok) {
         console.error(`HTTP error! status: ${response.status}`);
@@ -65,11 +73,13 @@ function SearchComponent() {
     setKeyword(''); // Clear the input field after sending
 
     try {
-      const apiUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001';
+      const apiUrl = REACT_APP_API_BASE_URL || 'http://localhost:8001';
       const response = await fetch(`${apiUrl}/api/v1/contextual_chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-Hub-Signature-256': SECRET_KEY_FOR_API, // Replace with actual signature value
+
         },
         body: JSON.stringify({
           messages: [

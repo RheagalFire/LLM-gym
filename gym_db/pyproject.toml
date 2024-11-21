@@ -1,27 +1,20 @@
 [tool.poetry]
-name = "gym-reader"
+name = "gym_db"
 version = "0.1.0"
-description = ""
+description = "All database operations for gym-reader"
 authors = ["RheagalFire <arishalam121@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-fastapi = "^0.115.0"
 structlog = "^24.4.0"
 colorlog = "^6.8.2"
 cachetools = "^5.5.0"
-dspy = "^2.5.2"
-uvicorn = "^0.32.0"
 pydantic = "^2.9.2"
 pydantic-settings = "^2.6.0"
-openai = "^1.51.2"
-instructor = "^1.6.1"
-qdrant-client = "^1.12.0"
-meilisearch = "^0.31.5"
-fastembed = { version = "^0.3.6", python = ">=3.10,<3.13"}
 python-multipart = "^0.0.12"
-gym_db = {path = "../gym_db", develop = true}
+prisma = "^0.15.0"
+
 
 
 [build-system]

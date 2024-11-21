@@ -22,6 +22,7 @@ model DocumentRecords {
   uuid        String   @id @default(uuid())
   url         String
   type        DocumentType
+  repo        String
   is_indexed  Boolean  @default(false)
   is_deleted  Boolean  @default(false)
   is_updated  Boolean  @default(false)
