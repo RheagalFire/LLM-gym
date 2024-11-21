@@ -1,22 +1,29 @@
-from gym_reader.logger import get_logger
 import json
+
+from gym_reader.logger import get_logger
+
 from gym_reader.settings import get_settings
 from gym_reader.clients.github_client import (
     fetch_file_diff,
     fetch_file_content_at_commit,
 )
 from gym_reader.data_models import RepoConfig
-from gym_reader.agents.extractor_agent import ContentExtractorAgent, PayloadForIndexing
+from gym_reader.agents.extractor_agent import ContentExtractorAgent
 from gym_reader.semantic_search.index import GymIndex
 from gym_reader.clients.qdrant_client import qdrant_client
 from gym_reader.clients.openai_client import openai_client
 from gym_reader.clients.meilisearch_client import meilisearch_client
+from gym_reader.clients.prisma_client import prisma_singleton
 import yaml
 import fnmatch
 import re
 from tqdm import tqdm
+from gym_db.gym_db.db_funcs import DbOps, enums
 
+
+# Create an Extractor Agent
 extractor_agent = ContentExtractorAgent()
+# Create a Gym Index
 gym_index = GymIndex(qdrant_client, meilisearch_client, openai_client)
 
 
@@ -24,6 +31,12 @@ def read_config_file(file_path: str) -> RepoConfig:
     with open(file_path) as file:
         config = yaml.safe_load(file)
     return RepoConfig(**config)
+
+
+async def get_dbops_client():
+    prisma_client = await prisma_singleton.get_client()
+    dbops = DbOps(prisma_client)
+    return dbops
 
 
 # A specific identifier for the comment
@@ -136,6 +149,7 @@ async def process_payload_for_push(payload, request):
 
 
 async def push_action_handler(payload, request):
+    dbops = await get_dbops_client()
     event_data = await process_payload_for_push(payload, request)
     log.debug(f"Event data: {event_data}")
     # get the data from the event_data
@@ -143,7 +157,6 @@ async def push_action_handler(payload, request):
     file_details = event_data.get("file_details")
     owner = event_data.get("owner")
     repo = event_data.get("repo")
-    # request_id = event_data.get("request_id")
     latest_commit_sha = event_data.get("latest_commit_sha")
     github_token = settings.PAT_TOKEN
 
@@ -152,6 +165,7 @@ async def push_action_handler(payload, request):
             f"Branch name {branch_name} is not the base branch {repo_config.base_branch}"
         )
         return None
+
     added_links = []
     deleted_links = []
     for file_detail in file_details:
@@ -168,53 +182,53 @@ async def push_action_handler(payload, request):
                 f"File extension {file_detail['extension']} is not in the include extensions {repo_config.include_extensions}"
             )
             continue
+
         # get the file diff
         file_diff = await fetch_file_diff(owner, repo, latest_commit_sha, github_token)
         file_content = await fetch_file_content_at_commit(
             owner, repo, file_detail["path"], latest_commit_sha, github_token
         )
+
         # get all the links from the file content
         all_links = extract_links(file_content)
         log.debug(f"All links: {all_links}")
+
         # get the added and deleted links from the file diff
         added_links, deleted_links = get_links_from_diff(file_diff)
-        # if any deleted link is in added_link ,remove it from the deleted_links
+
+        # if any deleted link is in added_link, remove it from the deleted_links
         deleted_links = [link for link in deleted_links if link not in added_links]
+
         # let's check which links are present and which are not
         added_links = [
             link for link in all_links if not gym_index.check_if_link_exists(link, repo)
         ]
         log.debug(f"Added links: {added_links}")
-        # for added links let's call the extractor agent
+
+        # for added links, let's upsert the document to the database
         for added_link in tqdm(added_links, total=len(added_links)):
-            # get the content from the link
-            meta_to_add_to_index: PayloadForIndexing = extractor_agent.forward(
-                added_link
-            )
             try:
-                # we need to add this to the qdrant and meilisearch index
-                gym_index.add_to_qdrant_collection(
-                    meta_to_add_to_index, collection_name=repo
-                )
-                # we need to add this to the meilisearch index as well
-                gym_index.add_to_meilisearch_collection(
-                    meta_to_add_to_index, collection_name=repo
-                )
+                type = enums.DocumentType.Link.value
+                document_record = await dbops.upsert_document(added_link, type, repo)
             except Exception as e:
-                log.error(f"Error adding to qdrant collection: {e}", exc_info=True)
+                log.error(f"Error upserting document {added_link}: {e}", exc_info=True)
                 continue
 
-        try:
-            if deleted_links:
-                gym_index.delete_from_qdrant_collection(
-                    deleted_links, collection_name=repo
-                )
-                gym_index.delete_from_meilisearch_collection(
-                    deleted_links, collection_name=repo
-                )
-        except Exception as e:
-            log.error(f"Error deleting from qdrant collection: {e}", exc_info=True)
-            continue
+            # No indexing logic here, just upsert the document
+            # The indexing will be handled by the indexing service
+
+    try:
+        if deleted_links:
+            for deleted_link in deleted_links:
+                document_record = await dbops.get_document_record_by_url(deleted_link)
+                if document_record:
+                    await dbops.update_document_deleted_status_by_uuid(
+                        document_record.uuid, True
+                    )
+            # mark the document as deleted in the database
+            # No indexing logic here
+    except Exception as e:
+        log.error(f"Error deleting from qdrant collection: {e}", exc_info=True)
     log.debug(f"Added links: {added_links}")
     log.debug(f"Deleted links: {deleted_links}")
     return True
