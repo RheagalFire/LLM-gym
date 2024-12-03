@@ -74,3 +74,15 @@ variable "certificate_arn" {
   type        = string
   default     = "arn:aws:acm:us-east-1:418721317505:certificate/fd513178-d939-4608-b55c-af65f488ce3f"
 }
+
+variable "github_secret_key_for_webhook" {
+  description = "GitHub Secret Key for Webhook"
+  type        = string
+  sensitive   = true
+}
+
+variable "direct_url" {
+  description = "Direct URL for FastAPI App"
+  type        = string
+  sensitive   = true
+}

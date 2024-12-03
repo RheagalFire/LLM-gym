@@ -11,7 +11,7 @@ fastapi = "^0.115.0"
 structlog = "^24.4.0"
 colorlog = "^6.8.2"
 cachetools = "^5.5.0"
-dspy = "^2.5.2"
+dspy = "2.5.40"
 uvicorn = "^0.32.0"
 pydantic = "^2.9.2"
 pydantic-settings = "^2.6.0"
@@ -22,6 +22,7 @@ meilisearch = "^0.31.5"
 fastembed = { version = "^0.3.6", python = ">=3.10,<3.13"}
 python-multipart = "^0.0.12"
 gym_db = {path = "../gym_db", develop = true}
+dspy-ai = "2.5.40"
 
 
 [build-system]

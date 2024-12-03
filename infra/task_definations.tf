@@ -68,7 +68,16 @@ resource "aws_ecs_task_definition" "fastapi_app" {
         {
           name      = "SPIDER_API_KEY"
           valueFrom = aws_secretsmanager_secret.spider_api_key.arn
+        },
+        {
+          name      = "DIRECT_URL"
+          valueFrom = aws_secretsmanager_secret.direct_url.arn
+        },
+        {
+          name      = "GITHUB_SECRET_KEY_FOR_WEBHOOK"
+          valueFrom = aws_secretsmanager_secret.github_secret_key_for_webhook.arn
         }
+
       ]
       logConfiguration = {
         logDriver = "awslogs"

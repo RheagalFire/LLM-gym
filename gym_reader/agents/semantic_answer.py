@@ -2,6 +2,7 @@ from gym_reader.agents.base_agent import Agent
 from gym_reader.programmes.programmes import (
     TypedChainOfThoughtProgramme as DspyProgramme,
     TypedProgramme as DspySimpleProgramme,
+    InstructorProgramme as InstructorProgramme,
 )
 from typing import List, Dict
 import logging
@@ -13,6 +14,7 @@ from gym_reader.signatures.signatures import (
     QueryRewriterSignature,
 )
 from gym_reader.semantic_search.hybrid_search import HybridSearch
+from gym_reader.clients.instructor_client import client_instructor
 
 log = logging.getLogger(__name__)
 
@@ -38,6 +40,8 @@ class ContextAwareAnswerAgent(Agent):
             openai_client=openai_client,
         )
         self.query_rewriter = DspySimpleProgramme(signature=QueryRewriterSignature)
+        # TODO: Use this later
+        self.instructor_programme = InstructorProgramme(client_instructor)
 
     def forward(
         self,
