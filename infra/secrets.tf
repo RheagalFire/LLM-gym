@@ -48,4 +48,12 @@ resource "aws_secretsmanager_secret_version" "spider_api_key_version" {
   secret_string = var.spider_api_key
 }
 
-// Repeat the above pattern for other sensitive environment variables
+resource "aws_secretsmanager_secret" "direct_url" {
+  name        = "direct_url"
+  description = "Direct URL for FastAPI App"
+}
+
+resource "aws_secretsmanager_secret" "github_secret_key_for_webhook" {
+  name        = "github_secret_key_for_webhook"
+  description = "GitHub Secret Key for Webhook"
+}

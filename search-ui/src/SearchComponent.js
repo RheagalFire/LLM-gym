@@ -2,7 +2,12 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Doodle from './assets/doodle.svg';
 import ReactMarkdown from 'react-markdown';
 import { REACT_APP_API_BASE_URL,SECRET_KEY_FOR_API } from './config';
+import CryptoJS from 'crypto-js';
 
+
+function generateHMACSignature(secretKey, message) {
+  return "sha256=" + CryptoJS.HmacSHA256(message, secretKey).toString(CryptoJS.enc.Hex);
+}
 
 
 // Debounce function to delay the execution of a function
@@ -32,13 +37,15 @@ function SearchComponent() {
     }
     try {
       const apiUrl = REACT_APP_API_BASE_URL || 'http://localhost:8001';
+      console.log(SECRET_KEY_FOR_API)
+      const hmacSignature = generateHMACSignature(SECRET_KEY_FOR_API,"");
       const response = await fetch(
         `${apiUrl}/api/v1/keyword_search?keyword=${encodeURIComponent(
           searchTerm
         )}&collection_name=LLM-gym`,
         {
           headers: {
-            'X-Hub-Signature-256': SECRET_KEY_FOR_API, // Replace with actual signature value
+            'X-Hub-Signature-256': hmacSignature, // Replace with actual signature value
           },
         }
       );
@@ -74,20 +81,21 @@ function SearchComponent() {
 
     try {
       const apiUrl = REACT_APP_API_BASE_URL || 'http://localhost:8001';
+      const body = JSON.stringify({
+        messages: [
+          ...chatHistory.filter((msg) => msg.role !== 'error'),
+          { content: message, role: 'user' },
+        ],
+        collection_name: 'LLM-gym',
+      })
+      const hmacSignature = generateHMACSignature(SECRET_KEY_FOR_API, body);
       const response = await fetch(`${apiUrl}/api/v1/contextual_chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Hub-Signature-256': SECRET_KEY_FOR_API, // Replace with actual signature value
-
+          'X-Hub-Signature-256': hmacSignature, // Replace with actual signature value
         },
-        body: JSON.stringify({
-          messages: [
-            ...chatHistory.filter((msg) => msg.role !== 'error'),
-            { content: message, role: 'user' },
-          ],
-          collection_name: 'LLM-gym',
-        }),
+        body: body,
       });
       if (!response.ok) {
         console.error(`HTTP error! status: ${response.status}`);

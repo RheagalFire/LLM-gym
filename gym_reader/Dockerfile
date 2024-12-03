@@ -9,8 +9,13 @@ WORKDIR /app/gym_reader
 # Install Poetry
 RUN pip install poetry
 
+# Install supervisor
+RUN apt-get update && apt-get install -y supervisor
+
 # Copy pyproject.toml and poetry.lock if present
 COPY pyproject.toml poetry.lock* /app/gym_reader/
+# Copy the supervisord configuration file
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Configure Poetry to not create a virtual environment
 RUN poetry config virtualenvs.create false
@@ -28,5 +33,5 @@ COPY . /app/gym_reader/
 EXPOSE 8000
 WORKDIR /app/
 
-# Command to run the application
-CMD ["uvicorn", "gym_reader.api.api:app", "--host", "0.0.0.0", "--port", "8000"]
+# Command to run supervisord
+CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

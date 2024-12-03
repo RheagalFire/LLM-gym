@@ -61,6 +61,8 @@ class HMACVerificationMiddleware(BaseHTTPMiddleware):
         # Read request body
         body = await request.body()
 
+        log.info(f"body: {body}")
+
         # Get the secret key from settings
         secret_key = settings.GITHUB_SECRET_KEY_FOR_WEBHOOK
 

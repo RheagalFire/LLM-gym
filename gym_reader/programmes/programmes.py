@@ -47,7 +47,7 @@ class TypedChainOfThoughtProgramme(dspy.Module):
 class TypedProgramme(dspy.Module):
     def __init__(self, signature):
         super().__init__()
-        self.predictor = dspy.TypedPredictor(signature)
+        self.predictor = dspy.Predict(signature)
 
     def forward(self, model=None, request_id: str = None, **kwargs):
         if model:
