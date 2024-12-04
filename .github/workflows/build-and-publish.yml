@@ -57,7 +57,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           push: true
-          platforms: linux/amd64
+          platform: linux/amd64
           tags: ${{ env.IMAGE_TAG }}
           context: ${{ github.event.inputs.service }}/
           file: ${{ github.event.inputs.service }}/Dockerfile
