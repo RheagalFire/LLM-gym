@@ -206,7 +206,7 @@ resource "aws_ecs_task_definition" "search_ui" {
   container_definitions = jsonencode([
     {
       name      = "search-ui"
-      image     = "418721317505.dkr.ecr.us-east-1.amazonaws.com/search-ui:latest" # I will replace it later
+      image     = "418721317505.dkr.ecr.us-east-1.amazonaws.com/search-ui:2024.12.04-165835" # I will replace it later
       essential = true
       portMappings = [
         {
