@@ -28,8 +28,8 @@ resource "aws_ecs_task_definition" "fastapi_app" {
           value = "gym_reader"
         },
         {
-          name  = "QDRANT_HOST"
-          value = "qdrant"
+          name  = "QDRANT_URL"
+          value = "http://qdrant:6333"
         },
         {
           name  = "TOKEN_KEY"
@@ -44,8 +44,8 @@ resource "aws_ecs_task_definition" "fastapi_app" {
           value = "aSampleMasterKey"
         },
         {
-          name  = "REACT_APP_API_BASE_URL"
-          value = "http://localhost:8001"
+          name  = "MEILISEARCH_URL"
+          value = "http://meilisearch:7700"
         }
       ]
       secrets = [
@@ -218,7 +218,13 @@ resource "aws_ecs_task_definition" "search_ui" {
       environment = [
         {
           name  = "REACT_APP_API_BASE_URL" // App Base URL
-          value = "http://localhost:8000"
+          value = "http://fastapi-app:8000"
+        }
+      ]
+      secrets = [
+        {
+          name      = "REACT_APP_SECRET_KEY_FOR_API"
+          valueFrom = aws_secretsmanager_secret.github_secret_key_for_webhook.arn
         }
       ]
       logConfiguration = {
