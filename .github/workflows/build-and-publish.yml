@@ -12,8 +12,8 @@ on:
         required: true
 
 env:
-  AWS_REGION: ap-south-1  # Change to your AWS region
-  ECR_ACCOUNT_ID: 241261420427  # Your AWS account ID
+  AWS_REGION: us-east-1  # Change to your AWS region
+  ECR_ACCOUNT_ID: 418721317505  # Your AWS account ID
 
 jobs:
   build_and_publish_docker_image:
