@@ -60,7 +60,7 @@ jobs:
           push: true
           platforms: linux/amd64
           tags: ${{ env.IMAGE_TAG }}
-          context: ${{ github.event.inputs.service }}/
+          context: ./
           file: ${{ github.event.inputs.service }}/Dockerfile
 
 
