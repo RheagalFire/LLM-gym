@@ -52,6 +52,9 @@ class TokenTrackingMiddleware(BaseHTTPMiddleware):
 # Middleware to verify HMAC signatures
 class HMACVerificationMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        # Skip HMAC verification for the /api/health endpoint
+        if request.url.path == "/api/health":
+            return await call_next(request)
         # Retrieve HMAC signature from headers
         hmac_signature = request.headers.get("X-Hub-Signature-256")
         if not hmac_signature:

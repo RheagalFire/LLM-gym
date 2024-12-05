@@ -53,7 +53,17 @@ resource "aws_secretsmanager_secret" "direct_url" {
   description = "Direct URL for FastAPI App"
 }
 
+resource "aws_secretsmanager_secret_version" "direct_url_version" {
+  secret_id     = aws_secretsmanager_secret.direct_url.id
+  secret_string = var.direct_url
+}
+
 resource "aws_secretsmanager_secret" "github_secret_key_for_webhook" {
   name        = "github_secret_key_for_webhook"
   description = "GitHub Secret Key for Webhook"
+}
+
+resource "aws_secretsmanager_secret_version" "github_secret_key_for_webhook_version" {
+  secret_id     = aws_secretsmanager_secret.github_secret_key_for_webhook.id
+  secret_string = var.github_secret_key_for_webhook
 }
