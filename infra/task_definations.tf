@@ -9,7 +9,7 @@ resource "aws_ecs_task_definition" "fastapi_app" {
   container_definitions = jsonencode([
     {
       name      = "fastapi-app"
-      image     = "418721317505.dkr.ecr.us-east-1.amazonaws.com/llm-gym-app:v2" # I will replace it later
+      image     = "418721317505.dkr.ecr.us-east-1.amazonaws.com/gym_reader:2024.12.05-183623" # I will replace it later
       essential = true
       portMappings = [
         {
@@ -29,7 +29,7 @@ resource "aws_ecs_task_definition" "fastapi_app" {
         },
         {
           name  = "QDRANT_URL"
-          value = "http://qdrant:6333"
+          value = "https://qdrant.lmgym.com"
         },
         {
           name  = "TOKEN_KEY"
@@ -45,7 +45,7 @@ resource "aws_ecs_task_definition" "fastapi_app" {
         },
         {
           name  = "MEILISEARCH_URL"
-          value = "http://meilisearch:7700"
+          value = "https://meilisearch.lmgym.com"
         }
       ]
       secrets = [
