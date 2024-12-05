@@ -72,6 +72,12 @@ variable "spider_api_key" {
 variable "certificate_arn" {
   description = "ARN of the certificate for the domain"
   type        = string
+  default     = "arn:aws:acm:us-east-1:418721317505:certificate/e6e3aaf3-a596-4571-9122-0a5c1cee88b6"
+}
+
+variable "additional_certificate_arn" {
+  description = "ARN of the additional certificate for the domain"
+  type        = string
   default     = "arn:aws:acm:us-east-1:418721317505:certificate/fd513178-d939-4608-b55c-af65f488ce3f"
 }
 
@@ -85,4 +91,24 @@ variable "direct_url" {
   description = "Direct URL for FastAPI App"
   type        = string
   sensitive   = true
+}
+
+variable "private_subnet_cidr_1" {
+  description = "CIDR block for the private subnet 1"
+  default     = "10.0.5.0/24"
+}
+
+variable "private_subnet_cidr_2" {
+  description = "CIDR block for the private subnet 2"
+  default     = "10.0.6.0/24"
+}
+
+variable "search_ui_host_header" {
+  description = "Host header for the Search UI service"
+  default     = "lmgym.com"
+}
+
+variable "api_service_host_header" {
+  description = "Host header for the API service"
+  default     = "api.lmgym.com"
 }

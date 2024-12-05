@@ -37,7 +37,9 @@ resource "aws_iam_policy" "ecs_secrets_policy" {
           aws_secretsmanager_secret.meilisearch_api_key.arn,
           aws_secretsmanager_secret.pat_token.arn,
           aws_secretsmanager_secret.tavily_api_key.arn,
-          aws_secretsmanager_secret.spider_api_key.arn
+          aws_secretsmanager_secret.spider_api_key.arn,
+          aws_secretsmanager_secret.github_secret_key_for_webhook.arn,
+          aws_secretsmanager_secret.direct_url.arn
         ]
       }
     ]
