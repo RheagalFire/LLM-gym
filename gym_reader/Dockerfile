@@ -24,7 +24,7 @@ COPY gym_reader/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 RUN poetry config virtualenvs.create false
 
 # Install dependencies
-RUN poetry install --no-interaction --no-ansi  
+RUN poetry install --no-interaction --no-ansi
 
 # Add Poetry's bin directory to PATH
 ENV PATH="/root/.local/bin:$PATH"
