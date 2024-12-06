@@ -9,7 +9,7 @@ resource "aws_ecs_task_definition" "fastapi_app" {
   container_definitions = jsonencode([
     {
       name      = "fastapi-app"
-      image     = "418721317505.dkr.ecr.us-east-1.amazonaws.com/gym_reader:2024.12.05-183623" # I will replace it later
+      image     = "418721317505.dkr.ecr.us-east-1.amazonaws.com/gym_reader:2024.12.05-192645" # I will replace it later
       essential = true
       portMappings = [
         {
