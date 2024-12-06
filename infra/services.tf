@@ -15,7 +15,7 @@ resource "aws_ecs_service" "fastapi_app" {
   # service_registries {
   #   registry_arn = aws_service_discovery_service.fastapi_app_service_discovery.arn
   # }
-  
+  health_check_grace_period_seconds = 180
   # Add Load Balancer Mapping here
   load_balancer {
     target_group_arn = aws_lb_target_group.api_service_tg.arn
@@ -37,6 +37,8 @@ resource "aws_ecs_service" "qdrant" {
     security_groups = [aws_security_group.ecs_sg.id]
     assign_public_ip = false
   }
+  // Give some time for the container to start
+  health_check_grace_period_seconds = 180
   # Add Load Balancer Mapping here
   load_balancer {
     target_group_arn = aws_lb_target_group.qdrant_tg.arn
