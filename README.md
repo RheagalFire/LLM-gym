@@ -15,6 +15,7 @@
 - [Late Chunking Blog](https://weaviate.io/blog/late-chunking): Late chunking the sweet spot between naive chunking retrieval and late interaction based retrieval!
 - [Contextual Rag](https://www.anthropic.com/news/contextual-retrieval) : While Indexing Ask LLM to contextualize the chunk and then index it!
 - [Retrieval via Late Interaction Models](https://huggingface.co/blog/fsommers/document-similarity-colpali) : Colipali and How it used Bag of Words for Document Similarity
+- [Query Routing](https://github.com/PrithivirajDamodaran/Route0x) : A Set-Fit Based approach for query routing.
 
 ### Some Essential Deployment Tools
 - [Converting to GGUF Tools](https://www.substratus.ai/blog/converting-hf-model-gguf-model) : Converting LLM to GGUF Format.
