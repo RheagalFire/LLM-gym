@@ -45,7 +45,7 @@ resource "aws_ecs_task_definition" "fastapi_app" {
         },
         {
           name  = "MEILISEARCH_URL"
-          value = "https://meilisearch.lmgym.com"
+          value = "https://mili.lmgym.com"
         }
       ]
       secrets = [
