@@ -41,6 +41,13 @@ resource "aws_lb_target_group" "api_service_tg" {
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
   target_type = "ip"  # Assuming your API service is using IP targets
+  health_check {
+    enabled = true
+    healthy_threshold   = 5
+    unhealthy_threshold = 5
+    timeout             = 10
+    path                = "/api/health"
+  }
 }
 
 # Listeners
