@@ -15,7 +15,9 @@ class GymReaderQdrantClient:
 
     def _init_client(self):
         self.client = QdrantClient(
-            url=settings.QDRANT_URL, api_key=settings.QDRANT_API_KEY
+            url=settings.QDRANT_URL,
+            api_key=settings.QDRANT_API_KEY,
+            port=settings.QDRANT_PORT,
         )
 
     def get_client(self):
