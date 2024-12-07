@@ -3,13 +3,13 @@ resource "aws_ecs_task_definition" "fastapi_app" {
   family                   = "fastapi-app"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = "512"
-  memory                   = "1024"
+  cpu                      = "1024"
+  memory                   = "2048"
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
   container_definitions = jsonencode([
     {
       name      = "fastapi-app"
-      image     = "418721317505.dkr.ecr.us-east-1.amazonaws.com/gym_reader:2024.12.06-120956"
+      image     = "418721317505.dkr.ecr.us-east-1.amazonaws.com/gym_reader:2024.12.06-222500"
       essential = true
       portMappings = [
         {
