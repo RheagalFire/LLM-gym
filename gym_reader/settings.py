@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     TAVILY_API_KEY: str = ""
     SPIDER_API_KEY: str = ""
     GITHUB_SECRET_KEY_FOR_WEBHOOK: str = ""
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+    DAILY_TOKEN_LIMIT: int = 10000  # Example daily limit
+    IP_TOKEN_LIMIT: int = 1000  # Example per-IP limit
 
     def is_dev(self):
         return self.ENVIRONMENT == Environment.Development

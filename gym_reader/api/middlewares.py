@@ -11,6 +11,7 @@ import hmac
 import hashlib
 from gym_reader.settings import get_settings
 from gym_reader.api.cache_tools import cache
+from gym_reader.clients.redis_client import redis_client
 
 settings = get_settings()
 log = get_logger(__name__)
@@ -25,7 +26,6 @@ class TokenTrackingMiddleware(BaseHTTPMiddleware):
         if not request_id:
             log.warning("X-Request-ID header is missing, generating a new one")
             request_id = str(uuid.uuid4())
-
         # Store the request_id in the request state
         request.state.request_id = request_id
 
@@ -53,7 +53,10 @@ class TokenTrackingMiddleware(BaseHTTPMiddleware):
 class HMACVerificationMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         # Skip HMAC verification for the /api/health endpoint
-        if request.url.path == "/api/health":
+        if (
+            request.url.path == "/api/health"
+            or request.url.path == "/api/v1/contextual_chat"
+        ):
             return await call_next(request)
         # Retrieve HMAC signature from headers
         hmac_signature = request.headers.get("X-Hub-Signature-256")
@@ -122,6 +125,44 @@ ALL_MIDDLEWARES = [
     TOKEN_TRACKING_MIDDLEWARE,
     HMAC_VERIFICATION_MIDDLEWARE,
 ]
+
+
+class TokenLimitMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        request_id = request.state.request_id
+        ip_address = request.headers.get("X-Forwarded-For", request.client.host)
+        total_tokens = cache.get(request_id)
+
+        # Define Redis keys
+        daily_key = "daily_usage"
+        ip_key = f"ip_usage:{ip_address}"
+
+        # Use Redis to manage daily and per-IP limits with TTL
+        if total_tokens is not None:
+            # Atomically increment the token counts and set TTL if the keys are new
+            daily_usage = redis_client.incrby(daily_key, total_tokens)
+            ip_usage = redis_client.incrby(ip_key, total_tokens)
+
+            # Set TTL for the keys if they are newly created
+            if daily_usage == total_tokens:
+                redis_client.expire(daily_key, 86400)  # 24 hours TTL
+            if ip_usage == total_tokens:
+                redis_client.expire(ip_key, 86400)  # 24 hours TTL
+
+            # Check if the usage exceeds the limits
+            if daily_usage > settings.DAILY_TOKEN_LIMIT:
+                return Response("Daily token limit exceeded", status_code=429)
+            if ip_usage > settings.IP_TOKEN_LIMIT:
+                return Response("IP token limit exceeded", status_code=429)
+
+        response = await call_next(request)
+        response.headers[settings.TOKEN_KEY] = str(total_tokens)
+
+        return response
+
+
+# Add the new middleware to the ALL_MIDDLEWARES list
+ALL_MIDDLEWARES.append(Middleware(TokenLimitMiddleware))
 
 __all__ = [
     "GZIP_MIDDLEWARE",

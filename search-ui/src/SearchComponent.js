@@ -3,6 +3,7 @@ import Doodle from './assets/doodle.svg';
 import ReactMarkdown from 'react-markdown';
 import { REACT_APP_API_BASE_URL,SECRET_KEY_FOR_API } from './config';
 import CryptoJS from 'crypto-js';
+import { v4 as uuidv4 } from 'uuid';
 
 
 function generateHMACSignature(secretKey, message) {
@@ -31,6 +32,7 @@ function SearchComponent() {
   const messagesEndRef = useRef(null);
 
   const handleSearch = async (searchTerm) => {
+    const requestId = uuidv4();
     if (searchTerm.length < 3) {
       setResults([]); // Clear results if the keyword is less than 3 characters
       return;
@@ -46,6 +48,7 @@ function SearchComponent() {
         {
           headers: {
             'X-Hub-Signature-256': hmacSignature, // Replace with actual signature value
+            'X-Request-ID': requestId,
           },
         }
       );
@@ -73,6 +76,7 @@ function SearchComponent() {
   }, [keyword, debouncedSearch, chatMode]);
 
   const handleChat = async (message) => {
+    const requestId = uuidv4();
     if (!message.trim()) return; // Prevent sending empty messages
 
     // Add the user's message to the chat history
@@ -94,6 +98,7 @@ function SearchComponent() {
         headers: {
           'Content-Type': 'application/json',
           'X-Hub-Signature-256': hmacSignature, // Replace with actual signature value
+          'X-Request-ID': requestId,
         },
         body: body,
       });
