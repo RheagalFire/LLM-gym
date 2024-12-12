@@ -10,7 +10,10 @@ log = get_logger(__name__)
 
 def add_tokens_to_cache(request_id: str, prediction_tokens: int):
     token_till_now = cache.get(request_id)
-    cache.set(request_id, token_till_now + prediction_tokens)
+    if token_till_now is None:
+        cache.set(request_id, prediction_tokens)
+    else:
+        cache.set(request_id, token_till_now + prediction_tokens)
 
 
 class TypedChainOfThoughtProgramme(dspy.Module):
@@ -26,6 +29,9 @@ class TypedChainOfThoughtProgramme(dspy.Module):
                     prediction_tokens = model.history[-1]["response"]["usage"][
                         "total_tokens"
                     ]
+                    log.debug(
+                        f"prediction_tokens: {prediction_tokens} with request_id: {request_id}"
+                    )
                     add_tokens_to_cache(request_id, prediction_tokens)
                 except Exception as e:
                     log.error(f"Error adding tokens to cache: {e}", exc_info=True)
@@ -38,6 +44,9 @@ class TypedChainOfThoughtProgramme(dspy.Module):
                 prediction_tokens = model.history[-1]["response"]["usage"][
                     "total_tokens"
                 ]
+                log.debug(
+                    f"prediction_tokens: {prediction_tokens} with request_id: {request_id}"
+                )
                 add_tokens_to_cache(request_id, prediction_tokens)
             except Exception as e:
                 log.error(f"Error adding tokens to cache: {e}", exc_info=True)
@@ -57,6 +66,9 @@ class TypedProgramme(dspy.Module):
                     prediction_tokens = model.history[-1]["response"]["usage"][
                         "total_tokens"
                     ]
+                    log.debug(
+                        f"prediction_tokens: {prediction_tokens} with request_id: {request_id}"
+                    )
                     add_tokens_to_cache(request_id, prediction_tokens)
                 except Exception as e:
                     log.error(f"Error adding tokens to cache: {e}", exc_info=True)
@@ -68,6 +80,7 @@ class TypedProgramme(dspy.Module):
                 prediction_tokens = model.history[-1]["response"]["usage"][
                     "total_tokens"
                 ]
+                log.debug(f"prediction_tokens: {prediction_tokens}")
                 add_tokens_to_cache(request_id, prediction_tokens)
             except Exception as e:
                 log.error(f"Error adding tokens to cache: {e}", exc_info=True)
@@ -109,6 +122,9 @@ class InstructorProgramme:
             log.debug(completion)
             try:
                 prediction_tokens = completion.usage.total_tokens
+                log.debug(
+                    f"prediction_tokens: {prediction_tokens} with request_id: {request_id}"
+                )
                 add_tokens_to_cache(request_id, prediction_tokens)
             except Exception as e:
                 log.error(f"Error adding tokens to cache: {e}", exc_info=True)

@@ -45,6 +45,11 @@ resource "aws_ecs_service" "qdrant" {
     container_name   = "qdrant"
     container_port   = 6333
   }
+  
+  // Service discovery for qdrant
+  service_registries {
+    registry_arn = aws_service_discovery_service.qdrant_service_discovery.arn
+  }
 
   depends_on = [aws_iam_role_policy_attachment.ecs_task_execution_role_policy]
 }
@@ -65,6 +70,11 @@ resource "aws_ecs_service" "meilisearch" {
     target_group_arn = aws_lb_target_group.meilisearch_tg.arn
     container_name   = "meilisearch"
     container_port   = 7700
+  }
+  
+  // Service discovery for meilisearch
+  service_registries {
+    registry_arn = aws_service_discovery_service.meilisearch_service_discovery.arn
   }
 }
 resource "aws_ecs_service" "search_ui" {
@@ -87,3 +97,6 @@ resource "aws_ecs_service" "search_ui" {
 
   depends_on = [aws_lb_listener.http, aws_lb_target_group.search_ui_tg, aws_iam_role_policy_attachment.ecs_task_execution_role_policy]
 }
+
+
+// service discovery for fastapi-app

@@ -84,7 +84,7 @@ resource "aws_lb_listener" "https" {
   }
 }
 
-// Add additional certificate using aws_lb_listener_certificate
+# Add additional certificate using aws_lb_listener_certificate
 resource "aws_lb_listener_certificate" "additional_cert" {
   listener_arn    = aws_lb_listener.https.arn
   certificate_arn = var.additional_certificate_arn
@@ -152,4 +152,36 @@ resource "aws_lb_listener_rule" "api_rule" {
       values = [var.api_service_host_header]
     }
   }
+}
+
+resource "aws_service_discovery_private_dns_namespace" "my_namespace" {
+  name        = "lmgym.com"
+  vpc         = aws_vpc.main.id
+  description = "Private DNS namespace for lmgym services"
+}
+
+resource "aws_service_discovery_service" "qdrant_service_discovery" {
+  name = "qdrant"
+  dns_config {
+    namespace_id = aws_service_discovery_private_dns_namespace.my_namespace.id
+    dns_records {
+      type = "A"
+      ttl  = 60
+    }
+  }
+
+  namespace_id = aws_service_discovery_private_dns_namespace.my_namespace.id
+}
+
+resource "aws_service_discovery_service" "meilisearch_service_discovery" {
+  name = "mili"
+  dns_config {
+    namespace_id = aws_service_discovery_private_dns_namespace.my_namespace.id
+    dns_records {
+      type = "A"
+      ttl  = 60
+    }
+  }
+
+  namespace_id = aws_service_discovery_private_dns_namespace.my_namespace.id
 }
