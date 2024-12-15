@@ -14,11 +14,12 @@ class RedisClient:
         return cls._instance
 
     def _init_client(self):
-        self.client = redis.Redis(
+        self.client = redis.StrictRedis(
             host=settings.REDIS_HOST,
             port=settings.REDIS_PORT,
             db=0,
-            decode_responses=True,
+            username="default",
+            password=settings.REDIS_PASSWORD,
         )
 
     def get_client(self):
