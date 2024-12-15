@@ -67,3 +67,13 @@ resource "aws_secretsmanager_secret_version" "github_secret_key_for_webhook_vers
   secret_id     = aws_secretsmanager_secret.github_secret_key_for_webhook.id
   secret_string = var.github_secret_key_for_webhook
 }
+
+resource "aws_secretsmanager_secret" "redis_password" {
+  name        = "redis_password"
+  description = "Redis Password for FastAPI App"
+}
+
+resource "aws_secretsmanager_secret_version" "redis_password_version" {
+  secret_id     = aws_secretsmanager_secret.redis_password.id
+  secret_string = var.redis_password
+}

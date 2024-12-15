@@ -9,7 +9,7 @@ resource "aws_ecs_task_definition" "fastapi_app" {
   container_definitions = jsonencode([
     {
       name      = "fastapi-app"
-      image     = "418721317505.dkr.ecr.us-east-1.amazonaws.com/gym_reader:2024.12.07-163502"
+      image     = "418721317505.dkr.ecr.us-east-1.amazonaws.com/gym_reader:2024.12.15-074206"
       essential = true
       portMappings = [
         {
@@ -50,6 +50,14 @@ resource "aws_ecs_task_definition" "fastapi_app" {
         {
           name  = "MEILISEARCH_URL"
           value = "http://mili.lmgym.com:7700"
+        },
+        {
+          name  = "REDIS_HOST"
+          value = "redis-10247.c244.us-east-1-2.ec2.redns.redis-cloud.com"
+        },
+        {
+          name  = "REDIS_PORT"
+          value = "10247"
         }
       ]
       secrets = [
@@ -80,6 +88,10 @@ resource "aws_ecs_task_definition" "fastapi_app" {
         {
           name      = "GITHUB_SECRET_KEY_FOR_WEBHOOK"
           valueFrom = aws_secretsmanager_secret.github_secret_key_for_webhook.arn
+        },
+        {
+          name      = "REDIS_PASSWORD"
+          valueFrom = aws_secretsmanager_secret.redis_password.arn
         }
 
       ]
