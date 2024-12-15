@@ -27,3 +27,6 @@ class RedisClient:
 
 
 redis_client = RedisClient().get_client()
+
+if __name__ == "__main__":
+    print(redis_client.get("asda"))
