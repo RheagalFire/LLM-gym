@@ -112,3 +112,9 @@ variable "api_service_host_header" {
   description = "Host header for the API service"
   default     = "api.lmgym.com"
 }
+
+variable "redis_password" {
+  description = "Redis Password for FastAPI App"
+  type        = string
+  sensitive   = true
+}
