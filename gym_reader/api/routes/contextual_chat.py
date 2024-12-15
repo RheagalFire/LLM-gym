@@ -13,13 +13,13 @@ chat_agent = ContextAwareAnswerAgent()
 @router.post("/api/v1/contextual_chat")
 async def keyword_search(request: Request, body: ChatPayload) -> ResponseModel:
     try:
-        log.debug(request.headers)
         collection_name = body.collection_name
         messages = body.messages
         search_query = messages[-1].content
         request_id = request.state.request_id
+        log.debug(f"request_id: {request_id}")
         conversation_history = [message.model_dump() for message in messages[:-1]]
-        log.debug(request.headers)
+        log.debug("request headers", request.headers)
         chat_object = chat_agent(
             search_query, collection_name, conversation_history, request_id
         )

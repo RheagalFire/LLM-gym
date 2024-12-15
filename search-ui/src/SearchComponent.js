@@ -39,7 +39,6 @@ function SearchComponent() {
     }
     try {
       const apiUrl = REACT_APP_API_BASE_URL || 'http://localhost:8001';
-      console.log(SECRET_KEY_FOR_API)
       const hmacSignature = generateHMACSignature(SECRET_KEY_FOR_API,"");
       const response = await fetch(
         `${apiUrl}/api/v1/keyword_search?keyword=${encodeURIComponent(
