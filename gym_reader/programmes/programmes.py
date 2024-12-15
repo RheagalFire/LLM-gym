@@ -11,8 +11,14 @@ log = get_logger(__name__)
 def add_tokens_to_cache(request_id: str, prediction_tokens: int):
     token_till_now = cache.get(request_id)
     if token_till_now is None:
+        log.debug(
+            f"setting token_till_now: {prediction_tokens} for request_id: {request_id}"
+        )
         cache.set(request_id, prediction_tokens)
     else:
+        log.debug(
+            f"updating token_till_now: {token_till_now} for request_id: {request_id}"
+        )
         cache.set(request_id, token_till_now + prediction_tokens)
 
 

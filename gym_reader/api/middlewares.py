@@ -17,46 +17,11 @@ settings = get_settings()
 log = get_logger(__name__)
 
 
-# Middleware to track tokens
-class TokenTrackingMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        # Get the request_id from headers
-        request_id = request.headers.get("X-Request-ID", None)
-
-        if not request_id:
-            log.warning("X-Request-ID header is missing, generating a new one")
-            request_id = str(uuid.uuid4())
-        # Store the request_id in the request state
-        request.state.request_id = request_id
-
-        TOKEN_KEY = request_id
-        # Initialize the token count in cache if not already present
-        if TOKEN_KEY not in cache.get_available_keys():
-            cache.set(TOKEN_KEY, 0)
-
-        # Process the request and get the response
-        response = await call_next(request)
-
-        # Get total tokens from cache
-        total_tokens = cache.get(TOKEN_KEY)
-
-        # Add total_tokens to the response headers
-        response.headers[settings.TOKEN_KEY] = str(total_tokens)
-
-        # Optionally, clean up the cache entry
-        cache.pop(TOKEN_KEY)
-
-        return response
-
-
 # Middleware to verify HMAC signatures
 class HMACVerificationMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         # Skip HMAC verification for the /api/health endpoint
-        if (
-            request.url.path == "/api/health"
-            or request.url.path == "/api/v1/contextual_chat"
-        ):
+        if request.url.path == "/api/health":
             return await call_next(request)
         # Retrieve HMAC signature from headers
         hmac_signature = request.headers.get("X-Hub-Signature-256")
@@ -115,23 +80,38 @@ CORS_MIDDLEWARE = Middleware(
 # Create instances of Middleware
 GZIP_MIDDLEWARE = Middleware(GZipMiddleware)
 PROCESSING_TIME_MIDDLEWARE = Middleware(ProcessingTimeMiddleware)
-TOKEN_TRACKING_MIDDLEWARE = Middleware(TokenTrackingMiddleware)
 HMAC_VERIFICATION_MIDDLEWARE = Middleware(HMACVerificationMiddleware)
 
 ALL_MIDDLEWARES = [
     GZIP_MIDDLEWARE,
     PROCESSING_TIME_MIDDLEWARE,
     CORS_MIDDLEWARE,
-    TOKEN_TRACKING_MIDDLEWARE,
     HMAC_VERIFICATION_MIDDLEWARE,
 ]
 
 
 class TokenLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        request_id = request.state.request_id
-        ip_address = request.headers.get("X-Forwarded-For", request.client.host)
+        # Get the request_id from headers
+        request_id = request.headers.get("X-Request-ID", None)
+
+        if not request_id:
+            log.warning("X-Request-ID header is missing, generating a new one")
+            request_id = str(uuid.uuid4())
+            log.debug(f"request_id generated: {request_id}")
+        # Store the request_id in the request state
+        request.state.request_id = request_id
+
+        ip_address = request.headers.get("x-forwarded-for", request.client.host)
+        # Initialize the token count in cache if not already present
+        if request_id not in cache.get_available_keys():
+            cache.set(request_id, 0)
+
+        # Process the request and get the response
+        response = await call_next(request)
+        # Get total tokens from cache
         total_tokens = cache.get(request_id)
+        log.debug(f"total_tokens: {total_tokens}")
 
         # Define Redis keys
         daily_key = "daily_usage"
@@ -141,7 +121,9 @@ class TokenLimitMiddleware(BaseHTTPMiddleware):
         if total_tokens is not None:
             # Atomically increment the token counts and set TTL if the keys are new
             daily_usage = redis_client.incrby(daily_key, total_tokens)
+            log.debug(f"daily_usage: {daily_usage}")
             ip_usage = redis_client.incrby(ip_key, total_tokens)
+            log.debug(f"ip_usage: {ip_usage}")
 
             # Set TTL for the keys if they are newly created
             if daily_usage == total_tokens:
@@ -155,8 +137,9 @@ class TokenLimitMiddleware(BaseHTTPMiddleware):
             if ip_usage > settings.IP_TOKEN_LIMIT:
                 return Response("IP token limit exceeded", status_code=429)
 
-        response = await call_next(request)
         response.headers[settings.TOKEN_KEY] = str(total_tokens)
+        response.headers["daily_usage"] = str(daily_usage)
+        response.headers["ip_usage"] = str(ip_usage)
 
         return response
 
@@ -169,6 +152,5 @@ __all__ = [
     "PROCESSING_TIME_MIDDLEWARE",
     "CORS_MIDDLEWARE",
     "ALL_MIDDLEWARES",
-    "TokenTrackingMiddleware",
     "HMAC_VERIFICATION_MIDDLEWARE",
 ]
