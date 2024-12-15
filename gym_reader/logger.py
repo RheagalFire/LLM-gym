@@ -10,7 +10,7 @@ console_handler.setLevel(logging.DEBUG)
 # Define the console formatter based on the environment
 if get_settings().is_dev():
     console_formatter = ColoredFormatter(
-        "%(log_color)s%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        "%(log_color)s%(asctime)s - %(name)s - %(levelname)s - %(lineno)d - %(message)s",
         datefmt=None,
         reset=True,
         log_colors={
@@ -23,7 +23,7 @@ if get_settings().is_dev():
     )
 else:
     console_formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        "%(asctime)s - %(name)s - %(levelname)s - %(lineno)d - %(message)s"
     )
 
 console_handler.setFormatter(console_formatter)
