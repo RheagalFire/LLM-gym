@@ -23,5 +23,5 @@
 ### About Vector Databases and Search Algorithms
 - [HNSW Algorithm](https://lukesalamone.github.io/posts/how-does-hnsw-work/) : It shows the intution behind how the HNSW algorithm works.
 
-# AI Safety and Harms
+### AI Safety and Harms
 - [Incident Database](https://incidentdatabase.ai/apps/discover/?is_incident_report=true): Incidents and Reports of AI Harms.
