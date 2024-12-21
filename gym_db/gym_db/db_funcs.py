@@ -46,3 +46,9 @@ class DbOps:
             where={"is_indexed": False, "is_deleted": False}
         )
         return documents
+
+    async def check_if_url_exists_in_repo(self, url: str, repo: str) -> bool:
+        document_record = await self.prisma_client.documentrecords.find_first(
+            where={"url": url, "repo": repo}
+        )
+        return document_record is not None
