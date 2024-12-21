@@ -1,5 +1,7 @@
 from typing import Optional
-from qdrant_client import QdrantClient, models  # Imported models
+from qdrant_client import QdrantClient  # Imported models
+from gym_db.db_funcs import DbOps
+from gym_reader.clients.prisma_client import prisma_singleton
 from meilisearch import Client as MeilisearchClient
 from openai import OpenAI
 from gym_reader.logger import get_logger
@@ -26,6 +28,9 @@ class Preprocessor:
         self.default_embedding_provider_for_summary = "openai"
         self.default_embedding_dimension_for_content = 1536
         self.default_embedding_provider_for_content = "openai"
+
+    async def get_client(self):
+        return await prisma_singleton.get_client()
 
     def get_embedding(
         self,
@@ -54,26 +59,29 @@ class Preprocessor:
         else:
             return list(self.text_embedding_model.embed(text))
 
-    def check_if_link_exists(self, link: str, collection_name: str):
+    async def check_if_link_exists(self, link: str, repo: str):
         try:
-            existing_collections = [
-                collection.name
-                for collection in self.qdrant_client.get_collections().collections
-            ]
-            if collection_name not in existing_collections:
-                return False
-            results, offset = self.qdrant_client.scroll(
-                collection_name=collection_name,
-                scroll_filter=models.Filter(
-                    should=[
-                        models.FieldCondition(
-                            key="parent_link", match=models.MatchValue(value=link)
-                        )
-                    ]
-                ),
-                limit=1,
-            )
-            return bool(results)
+            dbops = DbOps(await self.get_client())
+            # existing_collections = [
+            #     collection.name
+            #     for collection in self.qdrant_client.get_collections().collections
+            # ]
+            # if collection_name not in existing_collections:
+            #     return False
+            # results, offset = self.qdrant_client.scroll(
+            #     collection_name=collection_name,
+            #     scroll_filter=models.Filter(
+            #         should=[
+            #             models.FieldCondition(
+            #                 key="parent_link", match=models.MatchValue(value=link)
+            #             )
+            #         ]
+            #     ),
+            #     limit=1,
+            # )
+            # return bool(results)
+            # check using database
+            return await dbops.check_if_url_exists_in_repo(link, repo)
         except Exception as e:
             self.logger.error(f"Error checking if link exists: {e}", exc_info=True)
             raise e

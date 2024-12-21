@@ -93,10 +93,7 @@ ALL_MIDDLEWARES = [
 class TokenLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         # Skip token limit for health and keyword search
-        if (
-            request.url.path == "/api/health"
-            or request.url.path == "/api/v1/keyword_search"
-        ):
+        if request.url.path != "/api/v1/contextual_chat":
             return await call_next(request)
         # Define Redis keys
         daily_key = "daily_usage"

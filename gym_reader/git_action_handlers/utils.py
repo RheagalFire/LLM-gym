@@ -201,9 +201,12 @@ async def push_action_handler(payload, request):
 
         # let's check which links are present and which are not
         added_links = [
-            link for link in all_links if not gym_index.check_if_link_exists(link, repo)
+            link
+            for link in all_links
+            if not await gym_index.check_if_link_exists(link, repo)
         ]
         log.debug(f"Added links: {added_links}")
+        log.debug(f"Deleted links: {deleted_links}")
 
         # for added links, let's upsert the document to the database
         for added_link in tqdm(added_links, total=len(added_links)):
