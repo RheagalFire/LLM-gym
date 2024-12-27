@@ -26,5 +26,6 @@
 ### AI Safety and Harms
 - [Incident Database](https://incidentdatabase.ai/apps/discover/?is_incident_report=true): Incidents and Reports of AI Harms.
 
-### Agents 
+### Agents & Systems
 - [Building Effective Agentic Flows](https://www.anthropic.com/research/building-effective-agents): Building effective agents
+- [LLM Systems](https://www.evidentlyai.com/ml-system-design): ML & LLM Systems
