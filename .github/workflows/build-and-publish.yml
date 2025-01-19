@@ -69,15 +69,20 @@ jobs:
           container-name: ${{ github.event.inputs.service }}
           image: ${{ env.IMAGE_TAG }}
 
+      - name: Determine service name
+        id: determine_service
+        run: |
+          if [ "${{ github.event.inputs.service }}" == "llm-gym" ]; then
+            echo "service=fastapi-app-service" >> $GITHUB_ENV
+          elif [ "${{ github.event.inputs.service }}" == "search-ui" ]; then
+            echo "service=search-ui-service" >> $GITHUB_ENV
+          else
+            echo "service=${{ github.event.inputs.service }}-service" >> $GITHUB_ENV
+
       - name: Deploy ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
           task-definition: ${{ steps.render_task_definition.outputs.task-definition }}
-          service: ${{ 
-            github.event.inputs.service == 'llm-gym' 
-              ? 'fastapi-app-service' 
-              : (github.event.inputs.service == 'search-ui' 
-                  ? 'search-ui-service' 
-                  : format('{0}-service', github.event.inputs.service)) }}
+          service: ${{ env.service }}
           cluster: main-cluster
           wait-for-service-stability: true
