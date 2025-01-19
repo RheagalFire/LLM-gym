@@ -15,6 +15,8 @@ from gym_reader.signatures.signatures import (
 )
 from gym_reader.semantic_search.hybrid_search import HybridSearch
 from gym_reader.clients.instructor_client import client_instructor
+from gym_reader.data_models import Library
+from gym_reader.agents.utils import create_pydantic_model_from_signature
 
 log = logging.getLogger(__name__)
 
@@ -50,6 +52,7 @@ class ContextAwareAnswerAgent(Agent):
         conversation_history: List[Dict[str, str]],
         request_id: str = None,
         model=None,
+        method=Library.INSTRUCTOR,
     ):
         # Rewrite the query based on conversation history
         rewritten_query = self.rewrite_query(
@@ -60,15 +63,40 @@ class ContextAwareAnswerAgent(Agent):
         search_results = self.hybrid_search.search(
             query=rewritten_query, collection_name=collection_name
         )
-        # Pass the top result to the programme
-        self.prediction_object = self.programme.forward(
-            query=rewritten_query,
-            summary_of_contents_of_links=search_results.summary,
-            entire_content_of_the_link=search_results.entire_content_of_the_link,
-            request_id=request_id,
-            model=model,
-        )
-        return self.prediction_object
+        if method == Library.INSTRUCTOR:
+            system_message_from_docstring = GenerateAnswerFromContent.__doc__
+            log.debug(system_message_from_docstring)
+            DynamicOutputModel = create_pydantic_model_from_signature(
+                GenerateAnswerFromContent
+            )
+            log.debug(DynamicOutputModel.model_json_schema())
+            user_message = f"""
+            Query: {rewritten_query}
+            Conversation History: {conversation_history}
+            summary_of_contents_of_links: {search_results.summary}
+            relevant_content: {search_results.relevant_content}
+            """
+            self.prediction_object = self.instructor_programme.forward(
+                request_id=request_id,
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_message_from_docstring},
+                    {"role": "user", "content": user_message},
+                ],
+                response_model=DynamicOutputModel,
+            )
+            return self.prediction_object
+        else:
+            # Pass the top result to the programme
+            self.prediction_object = self.programme.forward(
+                query=rewritten_query,
+                conversation_history=conversation_history,
+                summary_of_contents_of_links=search_results.summary,
+                relevant_content=search_results.relevant_content,
+                request_id=request_id,
+                model=model,
+            )
+            return self.prediction_object
 
     def __call__(
         self,

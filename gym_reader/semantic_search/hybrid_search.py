@@ -19,6 +19,7 @@ class HybridSearch(Preprocessor):  # Inherit from Preprocessor
     def search(self, query: str, collection_name: str, limit: int = 3) -> SearchResult:
         results = self.search_from_collection(query, collection_name, limit)
         self.logger.debug(results)
+        # parent link content
         return SearchResult(
             summary=[
                 {result.payload["parent_link"]: result.payload["parent_summary"]}
@@ -26,7 +27,7 @@ class HybridSearch(Preprocessor):  # Inherit from Preprocessor
             ],
             content_score=[result.score for result in results.points],
             summary_score=[result.score for result in results.points],
-            entire_content_of_the_link=[
+            relevant_content=[
                 result.payload["parent_content"] for result in results.points
             ],
         )

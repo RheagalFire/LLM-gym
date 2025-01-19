@@ -37,8 +37,11 @@ class ContentExtractorAgent(Agent):
         model=None,
         method=Library.INSTRUCTOR,
     ) -> PayloadForIndexing:
+        log.info(f"Extracting content from {link}")
         search_result = spider_client.search(link)
+        log.info("Extraction Complete")
         parent_content = search_result[0]["content"]
+        log.debug(f"Sample Parent content: {parent_content[:100]}...")
         parent_link = search_result[0]["url"]
         child_contents = []
         child_links = []

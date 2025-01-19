@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     REDIS_PASSWORD: str = ""
     DAILY_TOKEN_LIMIT: int = 50000  # Example daily limit
     IP_TOKEN_LIMIT: int = 50000  # Example per-IP limit
+    MAX_TOKENS_PER_CHUNK: int = 1000
+    OVERLAP_TOKENS_PER_CHUNK: int = 100
 
     def is_dev(self):
         return self.ENVIRONMENT == Environment.Development
@@ -81,3 +83,6 @@ def initialize_dspy_with_configs(
 
 def get_settings():
     return Settings()
+
+
+TOKEN_MIDDLEWARES = ["/api/v1/contextual_chat"]
