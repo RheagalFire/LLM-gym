@@ -7,7 +7,7 @@ class SearchResult(BaseModel):
     summary: List[Dict[str, str]]
     content_score: List[float]
     summary_score: List[float]
-    entire_content_of_the_link: List[str]
+    relevant_content: List[str]
 
 
 class RepoConfig(BaseModel):

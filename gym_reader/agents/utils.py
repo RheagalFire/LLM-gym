@@ -1,30 +1,30 @@
-from gym_reader.agents.semantic_answer import ContextAwareAnswerAgent
+# from gym_reader.agents.semantic_answer import ContextAwareAnswerAgent
 from typing import Type, Any, Dict, Optional
 from pydantic import BaseModel, Field, create_model
 
 
-agents = [ContextAwareAnswerAgent]
+# agents = [ContextAwareAnswerAgent]
 
-_initialized = False  # Module-level flag to ensure initialization runs only once
-
-
-def init_agentic_mappers():
-    global _initialized
-    if not _initialized:
-        agent_dict = {}
-        for agent in agents:
-            agent_init = agent()
-            agent_dict[agent_init.class_name] = {
-                "class_name": agent_init.class_name,
-                "description": agent_init.desc,
-                "input_variables": agent_init.input_variables,
-                "class_object": agent_init,
-            }
-        _initialized = True
-    return agent_dict
+# _initialized = False  # Module-level flag to ensure initialization runs only once
 
 
-agent_dict = init_agentic_mappers()
+# def init_agentic_mappers():
+#     global _initialized
+#     if not _initialized:
+#         agent_dict = {}
+#         for agent in agents:
+#             agent_init = agent()
+#             agent_dict[agent_init.class_name] = {
+#                 "class_name": agent_init.class_name,
+#                 "description": agent_init.desc,
+#                 "input_variables": agent_init.input_variables,
+#                 "class_object": agent_init,
+#             }
+#         _initialized = True
+#     return agent_dict
+
+
+# agent_dict = init_agentic_mappers()
 
 
 def create_pydantic_model_from_signature(

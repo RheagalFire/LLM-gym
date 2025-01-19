@@ -1,5 +1,10 @@
 version: '3.8'
 
+volumes:
+  qdrant_data: /Users/abcom/Desktop/docker_volumes/qdrant
+  meilisearch_data: /Users/abcom/Desktop/docker_volumes/meilisearch
+  postgres_data: /Users/abcom/Desktop/docker_volumes/postgres_data
+
 services:
   qdrant:
     image: qdrant/qdrant:latest
@@ -8,7 +13,7 @@ services:
       - "6333:6333"
       - "6334:6334"
     volumes:
-      - /Users/abcom/Desktop/docker_volumes/qdrant:/qdrant/storage
+      - qdrant_data:/qdrant/storage
     restart: unless-stopped
 
   meilisearch:
@@ -17,8 +22,19 @@ services:
     ports:
       - "7700:7700"
     volumes:
-      - /Users/abcom/Desktop/docker_volumes/meilisearch:/meili_data
+      - meilisearch_data:/meili_data
     restart: unless-stopped
     environment:
       MEILI_NO_ANALYTICS: 'true'
       MEILI_MASTER_KEY: 'aSampleMasterKey'
+  llm-db:
+    image: postgres:latest
+    container_name: postgres-llm-db
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: llm_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data

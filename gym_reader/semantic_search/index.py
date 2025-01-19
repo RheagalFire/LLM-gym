@@ -7,7 +7,13 @@ from gym_reader.logger import get_logger
 from gym_reader.semantic_search.preprocessor import (
     Preprocessor,
 )  # Import the new Preprocessor class
+from gym_reader.semantic_search.utils import (
+    chunk_text_with_overlap,
+)  # Import the chunking utility
+import uuid  # Import the uuid module for generating random UUIDs
+from gym_reader.settings import get_settings
 
+config = get_settings()
 log = get_logger(__name__)
 
 
@@ -52,18 +58,31 @@ class GymIndex(Preprocessor):
             except Exception as e:
                 log.error(f"Error creating payload index: {e}", exc_info=True)
                 raise e
-        points = [
-            # we will assign a random id to the point
-            models.PointStruct(
-                id=data.uuid,
-                vector={
-                    # we have two vectors for each point one for summary and one for content
-                    "summary": self.get_embedding(data.parent_summary),
-                    "content": self.get_embedding(data.parent_content),
-                },
-                payload=data.model_dump(),
+        # Chunk only the parent_content using the external utility
+        content_chunks = chunk_text_with_overlap(
+            data.parent_content,
+            max_tokens=config.MAX_TOKENS_PER_CHUNK,
+            overlap=config.OVERLAP_TOKENS_PER_CHUNK,
+        )
+        log.info(f"Chunked into {len(content_chunks)} chunks")
+        points = []
+
+        for chunk in content_chunks:
+            # Refactor data according to chunk
+            chunk_data = data.model_copy()
+            # Reset the parent_content to the chunk
+            chunk_data.parent_content = chunk
+            point_id = str(uuid.uuid4())  # Generate a random UUID for point_id
+            points.append(
+                models.PointStruct(
+                    id=point_id,
+                    vector={
+                        "summary": self.get_embedding(data.parent_summary),
+                        "content": self.get_embedding(chunk),
+                    },
+                    payload=chunk_data.model_dump(),  # All other properties remain the same
+                )
             )
-        ]
         try:
             self.qdrant_client.upsert(collection_name=collection_name, points=points)
             return True
@@ -139,6 +158,7 @@ class GymIndex(Preprocessor):
                     },
                     "pagination": {"maxTotalHits": 5000},
                     "faceting": {"maxValuesPerFacet": 200},
+                    "filterableAttributes": ["parent_link"],
                     "searchCutoffMs": 150,
                 }
             )
@@ -153,5 +173,12 @@ class GymIndex(Preprocessor):
             raise e
 
     def delete_from_meilisearch_collection(self, links, collection_name: str):
+        # check if the field is filterable
+        meili_settings = self.meilisearch_client.index(collection_name).get_settings()
+        if "parent_link" not in meili_settings["filterableAttributes"]:
+            log.debug("Meilisearch index is not filterable, updating...")
+            self.meilisearch_client.index(collection_name).update_filterable_attributes(
+                ["parent_link"]
+            )
         filter = f"parent_link IN {links}"
         self.meilisearch_client.index(collection_name).delete_documents(filter=filter)

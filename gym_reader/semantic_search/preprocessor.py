@@ -62,25 +62,6 @@ class Preprocessor:
     async def check_if_link_exists(self, link: str, repo: str):
         try:
             dbops = DbOps(await self.get_client())
-            # existing_collections = [
-            #     collection.name
-            #     for collection in self.qdrant_client.get_collections().collections
-            # ]
-            # if collection_name not in existing_collections:
-            #     return False
-            # results, offset = self.qdrant_client.scroll(
-            #     collection_name=collection_name,
-            #     scroll_filter=models.Filter(
-            #         should=[
-            #             models.FieldCondition(
-            #                 key="parent_link", match=models.MatchValue(value=link)
-            #             )
-            #         ]
-            #     ),
-            #     limit=1,
-            # )
-            # return bool(results)
-            # check using database
             return await dbops.check_if_url_exists_in_repo(link, repo)
         except Exception as e:
             self.logger.error(f"Error checking if link exists: {e}", exc_info=True)

@@ -9,7 +9,7 @@ import uuid
 import time
 import hmac
 import hashlib
-from gym_reader.settings import get_settings
+from gym_reader.settings import get_settings, TOKEN_MIDDLEWARES
 from gym_reader.api.cache_tools import cache
 from gym_reader.clients.redis_client import redis_client
 
@@ -93,7 +93,7 @@ ALL_MIDDLEWARES = [
 class TokenLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         # Skip token limit for health and keyword search
-        if request.url.path != "/api/v1/contextual_chat":
+        if request.url.path not in TOKEN_MIDDLEWARES:
             return await call_next(request)
         # Define Redis keys
         daily_key = "daily_usage"
@@ -104,8 +104,8 @@ class TokenLimitMiddleware(BaseHTTPMiddleware):
         """
         Check if daily usage or ip usage is breached
         """
-        daily_usage = redis_client.get(daily_key) or 0
-        ip_usage = redis_client.get(ip_key) or 0
+        daily_usage = int(redis_client.get(daily_key) or 0)
+        ip_usage = int(redis_client.get(ip_key) or 0)
         # Check if the usage exceeds the configured limits
         if daily_usage > settings.DAILY_TOKEN_LIMIT:
             return Response("Daily token limit exceeded", status_code=429)

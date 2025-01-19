@@ -52,3 +52,9 @@ class DbOps:
             where={"url": url, "repo": repo}
         )
         return document_record is not None
+
+    async def get_documents_to_delete(self) -> List[DocumentRecords]:
+        documents = await self.prisma_client.documentrecords.find_many(
+            where={"is_deleted": True, "is_indexed": True}
+        )
+        return documents
