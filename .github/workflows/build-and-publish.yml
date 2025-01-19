@@ -70,13 +70,13 @@ jobs:
             echo "container_name=${{ github.event.inputs.service }}" >> $GITHUB_ENV
           fi
 
-      # - name: Build and push Docker image
-      #   uses: docker/build-push-action@v4
-      #   with:
-      #     push: true
-      #     tags: ${{ env.IMAGE_TAG }}
-      #     context: ./
-      #     file: ${{ github.event.inputs.service }}/Dockerfile
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          push: true
+          tags: ${{ env.IMAGE_TAG }}
+          context: ./
+          file: ${{ github.event.inputs.service }}/Dockerfile
   
       - name: Render new ECS task definition
         id: render_task_definition
@@ -84,7 +84,7 @@ jobs:
         with:
           task-definition-arn: ${{ env.task_defination_arn }}
           container-name: ${{ env.container_name }}
-          image: 418721317505.dkr.ecr.us-east-1.amazonaws.com/gym_reader:2025.01.19-145755
+          image: ${{ env.IMAGE_TAG }}
 
       - name: Deploy ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
