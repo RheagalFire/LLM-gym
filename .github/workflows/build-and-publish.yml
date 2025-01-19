@@ -61,14 +61,6 @@ jobs:
           context: ./
           file: ${{ github.event.inputs.service }}/Dockerfile
 
-      - name: Render new ECS task definition
-        id: render_task_definition
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: ecs-task-definitions/${{ github.event.inputs.service }}-task-def.json
-          container-name: ${{ github.event.inputs.service }}
-          image: ${{ env.IMAGE_TAG }}
-
       - name: Determine service name
         id: determine_service
         run: |
@@ -78,6 +70,14 @@ jobs:
             echo "service=search-ui-service" >> $GITHUB_ENV
           else
             echo "service=${{ github.event.inputs.service }}-service" >> $GITHUB_ENV
+
+      - name: Render new ECS task definition
+        id: render_task_definition
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ecs-task-definitions/${{ env.service }}-task-def.json
+          container-name: ${{ env.service }}
+          image: ${{ env.IMAGE_TAG }}
 
       - name: Deploy ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
