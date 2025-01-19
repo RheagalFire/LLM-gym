@@ -52,15 +52,7 @@ jobs:
           SERVICE_NAME=${{ github.event.inputs.service }}
           IMAGE_TAG=${{ env.ECR_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${SERVICE_NAME}:${{ env.VERSION }}
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
-        with:
-          push: true
-          tags: ${{ env.IMAGE_TAG }}
-          context: ./
-          file: ${{ github.event.inputs.service }}/Dockerfile
-
+          
       - name: Determine service name
         id: determine_service
         run: |
@@ -73,7 +65,16 @@ jobs:
           else
             echo "service=${{ github.event.inputs.service }}-service" >> $GITHUB_ENV
             echo "task_defination_file=${{ github.event.inputs.service }}-task-def.json" >> $GITHUB_ENV
-
+          fi
+          
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          push: true
+          tags: ${{ env.IMAGE_TAG }}
+          context: ./
+          file: ${{ github.event.inputs.service }}/Dockerfile
+  
       - name: Render new ECS task definition
         id: render_task_definition
         uses: aws-actions/amazon-ecs-render-task-definition@v1
