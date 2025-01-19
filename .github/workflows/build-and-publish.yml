@@ -80,14 +80,14 @@ jobs:
   
       - name: Render new ECS task definition
         id: render_task_definition
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        uses: aws-actions/amazon-ecs-render-task-definition@v2
         with:
           task-definition-arn: ${{ env.task_defination_arn }}
           container-name: ${{ env.container_name }}
           image: 418721317505.dkr.ecr.us-east-1.amazonaws.com/gym_reader:2025.01.19-145755
 
       - name: Deploy ECS task definition
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           task-definition: ${{ steps.render_task_definition.outputs.task-definition }}
           service: ${{ env.service }}
