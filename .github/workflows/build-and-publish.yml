@@ -82,7 +82,7 @@ jobs:
         id: render_task_definition
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
-          task-definition: ecs-task-definitions/${{ env.task_defination_file }}
+          task-definition: ${{ env.task_defination_file }}
           container-name: ${{ env.container_name }}
           image: 418721317505.dkr.ecr.us-east-1.amazonaws.com/gym_reader:2025.01.19-145755
 
