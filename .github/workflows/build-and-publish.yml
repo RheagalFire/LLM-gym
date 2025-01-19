@@ -80,7 +80,7 @@ jobs:
   
       - name: Render new ECS task definition
         id: render_task_definition
-        uses: aws-actions/amazon-ecs-render-task-definition@v2
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
           task-definition-arn: ${{ env.task_defination_arn }}
           container-name: ${{ env.container_name }}
