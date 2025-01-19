@@ -45,8 +45,8 @@ resource "aws_lb_target_group" "api_service_tg" {
     enabled = true
     healthy_threshold   = 5
     unhealthy_threshold = 5
-    timeout             = 10
-    interval            = 120
+    timeout             = 5
+    interval            = 10
     path                = "/api/health"
   }
 }
