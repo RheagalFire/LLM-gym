@@ -7,7 +7,7 @@ FROM python:3.11
 WORKDIR /app/gym_reader
 
 # Install Poetry
-RUN pip install poetry
+RUN pip install poetry==1.6.1
 
 # Copy the gym_db directory into the Docker image
 COPY gym_db /app/gym_db
@@ -20,14 +20,14 @@ COPY gym_reader/pyproject.toml gym_reader/poetry.lock* /app/gym_reader/
 # Copy the supervisord configuration file
 COPY gym_reader/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
+# Add Poetry's bin directory to PATH
+ENV PATH="/root/.local/bin:$PATH"
+
 # Configure Poetry to not create a virtual environment
 RUN poetry config virtualenvs.create false
 
 # Install dependencies
 RUN poetry install --no-interaction --no-ansi
-
-# Add Poetry's bin directory to PATH
-ENV PATH="/root/.local/bin:$PATH"
 
 # Copy the rest of the application code
 COPY gym_reader /app/gym_reader/
