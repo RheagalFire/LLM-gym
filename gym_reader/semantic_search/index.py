@@ -158,6 +158,7 @@ class GymIndex(Preprocessor):
                     },
                     "pagination": {"maxTotalHits": 5000},
                     "faceting": {"maxValuesPerFacet": 200},
+                    "filterableAttributes": ["parent_link"],
                     "searchCutoffMs": 150,
                 }
             )
@@ -172,5 +173,12 @@ class GymIndex(Preprocessor):
             raise e
 
     def delete_from_meilisearch_collection(self, links, collection_name: str):
+        # check if the field is filterable
+        meili_settings = self.meilisearch_client.index(collection_name).get_settings()
+        if "parent_link" not in meili_settings["filterableAttributes"]:
+            log.debug("Meilisearch index is not filterable, updating...")
+            self.meilisearch_client.index(collection_name).update_filterable_attributes(
+                ["parent_link"]
+            )
         filter = f"parent_link IN {links}"
         self.meilisearch_client.index(collection_name).delete_documents(filter=filter)
