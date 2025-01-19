@@ -58,15 +58,15 @@ jobs:
         run: |
           if [ "${{ github.event.inputs.service }}" == "gym_reader" ]; then
             echo "service=fastapi-app-service" >> $GITHUB_ENV
-            echo "task_defination_file=fastapi-app.json" >> $GITHUB_ENV
+            echo "task_defination_arn=arn:aws:ecs:us-east-1:418721317505:task-definition/fastapi-app" >> $GITHUB_ENV
             echo "container_name=fastapi-app" >> $GITHUB_ENV
           elif [ "${{ github.event.inputs.service }}" == "search-ui" ]; then
             echo "service=search-ui-service" >> $GITHUB_ENV
-            echo "task_defination_file=search-ui.json" >> $GITHUB_ENV
+            echo "task_defination_arn=arn:aws:ecs:us-east-1:418721317505:task-definition/search-ui" >> $GITHUB_ENV
             echo "container_name=search-ui" >> $GITHUB_ENV
           else
             echo "service=${{ github.event.inputs.service }}-service" >> $GITHUB_ENV
-            echo "task_defination_file=${{ github.event.inputs.service }}-task-def.json" >> $GITHUB_ENV
+            echo "task_defination_arn=arn:aws:ecs:us-east-1:418721317505:task-definition/${{ github.event.inputs.service }}" >> $GITHUB_ENV
             echo "container_name=${{ github.event.inputs.service }}" >> $GITHUB_ENV
           fi
 
@@ -82,7 +82,7 @@ jobs:
         id: render_task_definition
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
-          task-definition: ${{ env.task_defination_file }}
+          task-definition-arn: ${{ env.task_defination_arn }}
           container-name: ${{ env.container_name }}
           image: 418721317505.dkr.ecr.us-east-1.amazonaws.com/gym_reader:2025.01.19-145755
 
