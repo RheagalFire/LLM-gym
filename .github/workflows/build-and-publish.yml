@@ -70,7 +70,8 @@ jobs:
             echo "service=search-ui-service" >> $GITHUB_ENV
           else
             echo "service=${{ github.event.inputs.service }}-service" >> $GITHUB_ENV
-
+          fi
+          
       - name: Render new ECS task definition
         id: render_task_definition
         uses: aws-actions/amazon-ecs-render-task-definition@v1
