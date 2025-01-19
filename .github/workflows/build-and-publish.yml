@@ -58,22 +58,22 @@ jobs:
         run: |
           if [ "${{ github.event.inputs.service }}" == "gym_reader" ]; then
             echo "service=fastapi-app-service" >> $GITHUB_ENV
-            echo "task_defination_file=fastapi-app-task-def.json" >> $GITHUB_ENV
+            echo "task_defination_file=fastapi-app.json" >> $GITHUB_ENV
           elif [ "${{ github.event.inputs.service }}" == "search-ui" ]; then
             echo "service=search-ui-service" >> $GITHUB_ENV
-            echo "task_defination_file=search-ui-task-def.json" >> $GITHUB_ENV
+            echo "task_defination_file=search-ui.json" >> $GITHUB_ENV
           else
             echo "service=${{ github.event.inputs.service }}-service" >> $GITHUB_ENV
             echo "task_defination_file=${{ github.event.inputs.service }}-task-def.json" >> $GITHUB_ENV
           fi
-          
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
-        with:
-          push: true
-          tags: ${{ env.IMAGE_TAG }}
-          context: ./
-          file: ${{ github.event.inputs.service }}/Dockerfile
+
+      # - name: Build and push Docker image
+      #   uses: docker/build-push-action@v4
+      #   with:
+      #     push: true
+      #     tags: ${{ env.IMAGE_TAG }}
+      #     context: ./
+      #     file: ${{ github.event.inputs.service }}/Dockerfile
   
       - name: Render new ECS task definition
         id: render_task_definition
@@ -81,7 +81,7 @@ jobs:
         with:
           task-definition: ecs-task-definitions/${{ env.task_defination_file }}
           container-name: ${{ env.service }}
-          image: ${{ env.IMAGE_TAG }}
+          image: 418721317505.dkr.ecr.us-east-1.amazonaws.com/gym_reader:2025.01.19-145755
 
       - name: Deploy ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
