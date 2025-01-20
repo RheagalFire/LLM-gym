@@ -29,3 +29,4 @@
 ### Agents & Systems
 - [Building Effective Agentic Flows](https://www.anthropic.com/research/building-effective-agents): Building effective agents
 - [LLM Systems](https://www.evidentlyai.com/ml-system-design): ML & LLM Systems
+- [Building Agentic Sysmtes](https://huyenchip.com/2025/01/07/agents.html): Chip's guide to building Agentic Systems
