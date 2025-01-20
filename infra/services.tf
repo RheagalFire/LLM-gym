@@ -15,7 +15,7 @@ resource "aws_ecs_service" "fastapi_app" {
   # service_registries {
   #   registry_arn = aws_service_discovery_service.fastapi_app_service_discovery.arn
   # }
-  health_check_grace_period_seconds = 10
+  health_check_grace_period_seconds = 120
   # Add Load Balancer Mapping here
   load_balancer {
     target_group_arn = aws_lb_target_group.api_service_tg.arn

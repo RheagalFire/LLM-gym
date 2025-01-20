@@ -35,7 +35,10 @@ class SpiderClient:
         Perform a search using Spider API
         """
         json_data = {"url": url, "limit": 2, "return_format": "markdown"}
-        response = requests.post(self.base_url, headers=self.headers, json=json_data)
+        # Timeout is set to 5 minutes
+        response = requests.post(
+            self.base_url, headers=self.headers, json=json_data, timeout=60 * 5
+        )
         response.raise_for_status()
         return response.json()
 
