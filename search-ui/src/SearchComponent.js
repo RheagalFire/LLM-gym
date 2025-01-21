@@ -66,7 +66,7 @@ function SearchComponent() {
     }
   };
 
-  const debouncedSearch = useCallback(debounce(handleSearch, 1200), []);
+  const debouncedSearch = useCallback(debounce(handleSearch, 200), []);
 
   useEffect(() => {
     if (!chatMode) {
