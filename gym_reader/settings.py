@@ -29,8 +29,8 @@ class Settings(BaseSettings):
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
     REDIS_PASSWORD: str = ""
-    DAILY_TOKEN_LIMIT: int = 50000  # Example daily limit
-    IP_TOKEN_LIMIT: int = 50000  # Example per-IP limit
+    DAILY_TOKEN_LIMIT: int = 1000000  # Example daily limit
+    IP_TOKEN_LIMIT: int = 120000  # Example per-IP limit
     MAX_TOKENS_PER_CHUNK: int = 1000
     OVERLAP_TOKENS_PER_CHUNK: int = 100
 
