@@ -27,6 +27,12 @@ services:
     environment:
       MEILI_NO_ANALYTICS: 'true'
       MEILI_MASTER_KEY: 'aSampleMasterKey'
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
   llm-db:
     image: postgres:latest
     container_name: postgres-llm-db
