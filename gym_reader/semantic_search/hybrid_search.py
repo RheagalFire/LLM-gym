@@ -32,7 +32,13 @@ class HybridSearch(Preprocessor):  # Inherit from Preprocessor
             ],
         )
 
-    def search_from_collection(self, query: str, collection_name: str, limit: int = 10):
+    def search_from_collection(
+        self,
+        query: str,
+        collection_name: str,
+        limit: int = 3,
+        score_threshold: float = 0.5,
+    ):
         summary_embedding = self.get_embedding(
             query,
             dimension=self.default_embedding_dimension_for_summary,
@@ -50,13 +56,17 @@ class HybridSearch(Preprocessor):  # Inherit from Preprocessor
                     query=summary_embedding,
                     using="summary",
                     limit=limit,
+                    score_threshold=score_threshold,
                 ),
                 models.Prefetch(
                     query=content_embedding,
                     using="content",
                     limit=limit,
+                    score_threshold=score_threshold,
                 ),
             ],
             query=models.FusionQuery(fusion=models.Fusion.RRF),
+            limit=limit,
+            score_threshold=score_threshold,
         )
         return results
