@@ -6,7 +6,7 @@ import CryptoJS from 'crypto-js';
 import { v4 as uuidv4 } from 'uuid';
 
 function generateHMACSignature(secretKey, message) {
-  return "sha256=" + CryptoJS.HmacSHA256(message, secretKey).toString(CryptoJS.enc.Hex);
+  return 'sha256=' + CryptoJS.HmacSHA256(message, secretKey).toString(CryptoJS.enc.Hex);
 }
 
 // Debounce function to delay the execution of a function
@@ -27,32 +27,32 @@ function SearchComponent() {
   const [results, setResults] = useState([]);
   const [chatMode, setChatMode] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
+  const [isTyping, setIsTyping] = useState(false); // NEW: for showing spinner / “typing” state
   const messagesEndRef = useRef(null);
+
+  // For the animated placeholder
   const placeholderTexts = [
     'Transformers..',
     'Query Rewriting..',
     'Late Chunking Methods',
     'Agentic Systems',
   ];
-
   const [placeholder, setPlaceholder] = useState('');
 
   const handleSearch = async (searchTerm) => {
     const requestId = uuidv4();
     if (searchTerm.length < 3) {
-      setResults([]); // Clear results if the keyword is less than 3 characters
+      setResults([]);
       return;
     }
     try {
       const apiUrl = REACT_APP_API_BASE_URL || 'http://localhost:8001';
-      const hmacSignature = generateHMACSignature(SECRET_KEY_FOR_API, "");
+      const hmacSignature = generateHMACSignature(SECRET_KEY_FOR_API, '');
       const response = await fetch(
-        `${apiUrl}/api/v1/keyword_search?keyword=${encodeURIComponent(
-          searchTerm
-        )}&collection_name=LLM-gym`,
+        `${apiUrl}/api/v1/keyword_search?keyword=${encodeURIComponent(searchTerm)}&collection_name=LLM-gym`,
         {
           headers: {
-            'X-Hub-Signature-256': hmacSignature, // Replace with actual signature value
+            'X-Hub-Signature-256': hmacSignature,
             'X-Request-ID': requestId,
           },
         }
@@ -61,14 +61,14 @@ function SearchComponent() {
         console.error(`HTTP error! status: ${response.status}`);
         const errorText = await response.text();
         console.error('Response text:', errorText);
-        setResults([]); // Set results to an empty array in case of error
+        setResults([]);
         return;
       }
       const data = await response.json();
       setResults(data.hits || []);
     } catch (error) {
       console.error('Error fetching data:', error);
-      setResults([]); // Set results to an empty array in case of error
+      setResults([]);
     }
   };
 
@@ -80,16 +80,16 @@ function SearchComponent() {
     }
   }, [keyword, debouncedSearch, chatMode]);
 
+  // Animated placeholder effect
   useEffect(() => {
-    let index = 0;        // Which word we're on
+    let index = 0; // Which word we're on
     let isDeleting = false;
-    let currentText = ''; // Current state of typed text
+    let currentText = '';
     let timerId;
 
     function type() {
       const word = placeholderTexts[index];
 
-      // Either type or delete characters
       if (!isDeleting) {
         currentText = word.substring(0, currentText.length + 1);
       } else {
@@ -101,39 +101,34 @@ function SearchComponent() {
       // Adjust speed or “pause” as needed
       let nextDelay = 200;
       if (isDeleting) {
-        // Usually make deletion a bit faster, or keep the same
-        nextDelay = 100;
+        nextDelay = 100; // deletion can be faster
       }
 
-      // If the word is fully typed, pause before deleting
       if (!isDeleting && currentText === word) {
-        nextDelay = 1000; // wait 1s at full word
+        // Pause at the full word
+        nextDelay = 1000;
         isDeleting = true;
-      }
-      // If nothing is left, switch to the next word
-      else if (isDeleting && currentText === '') {
+      } else if (isDeleting && currentText === '') {
+        // Word completely deleted, move to next
         isDeleting = false;
         index = (index + 1) % placeholderTexts.length;
-        nextDelay = 500; // small pause before typing next word
+        nextDelay = 500;
       }
-
       timerId = setTimeout(type, nextDelay);
     }
 
-    // Start the cycle
     type();
-
-    // Cleanup on unmount
     return () => clearTimeout(timerId);
   }, []);
 
   const handleChat = async (message) => {
     const requestId = uuidv4();
-    if (!message.trim()) return; // Prevent sending empty messages
+    if (!message.trim()) return;
 
     // Add the user's message to the chat history
     setChatHistory((prev) => [...prev, { content: message, role: 'user' }]);
-    setKeyword(''); // Clear the input field after sending
+    setKeyword(''); // Clear the input field
+    setIsTyping(true); // Start “typing” indicator
 
     try {
       const apiUrl = REACT_APP_API_BASE_URL || 'http://localhost:8001';
@@ -149,11 +144,12 @@ function SearchComponent() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Hub-Signature-256': hmacSignature, // Replace with actual signature value
+          'X-Hub-Signature-256': hmacSignature,
           'X-Request-ID': requestId,
         },
-        body: body,
+        body,
       });
+
       if (!response.ok) {
         console.error(`HTTP error! status: ${response.status}`);
         const errorText = await response.text();
@@ -162,6 +158,7 @@ function SearchComponent() {
           ...prev,
           { content: 'Error fetching response.', role: 'error' },
         ]);
+        setIsTyping(false);
         return;
       }
       const data = await response.json();
@@ -180,10 +177,12 @@ function SearchComponent() {
         ...prev,
         { content: 'Error fetching response.', role: 'error' },
       ]);
+    } finally {
+      setIsTyping(false); // Stop “typing” indicator
     }
   };
 
-  // Scroll to the bottom when new messages are added
+  // Scroll to bottom when new messages are added
   useEffect(() => {
     if (chatMode && messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -210,7 +209,7 @@ function SearchComponent() {
           position: 'fixed',
           top: '20px',
           right: '20px',
-          zIndex: 1000, // Ensure it stays on top
+          zIndex: 1000,
           backgroundColor: 'rgba(255, 255, 255, 0.8)',
           padding: '10px',
           borderRadius: '20px',
@@ -302,9 +301,9 @@ function SearchComponent() {
                 outline: 'none',
                 fontSize: '16px',
                 padding: '10px',
-                backgroundColor: 'transparent', // Make background transparent
+                backgroundColor: 'transparent',
                 color: '#ffffff',
-                marginRight: '10px', // Add some space between input and button
+                marginRight: '10px',
               }}
             />
             <button
@@ -324,7 +323,6 @@ function SearchComponent() {
             </button>
           </div>
 
-          {/* Add some space between the search bar and results */}
           <div style={{ height: '40px' }}></div>
         </>
       )}
@@ -363,74 +361,77 @@ function SearchComponent() {
               >
                 <div
                   style={{
+                    display: 'inline-block',
                     backgroundColor:
-                      message.role === 'user' ? '#3f2b96' : 'rgba(255, 255, 255, 0.8)',
-                    color: message.role === 'user' ? '#ffffff' : '#333333',
+                      message.role === 'user'
+                        ? '#3f2b96'
+                        : message.role === 'error'
+                        ? '#ffd7d7'
+                        : 'rgba(255, 255, 255, 0.8)',
+                    color:
+                      message.role === 'user'
+                        ? '#ffffff'
+                        : message.role === 'error'
+                        ? '#333'
+                        : '#333333',
                     borderRadius: '20px',
                     padding: '15px',
                     maxWidth: '70%',
-                    wordWrap: 'break-word',
-                    overflowWrap: 'break-word',
                     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                    wordWrap: 'break-word',
+                    whiteSpace: 'pre-wrap',
                   }}
                 >
-                  <div
-                    style={{
-                      maxWidth: '100%',
-                      overflowWrap: 'break-word',
-                      wordWrap: 'break-word',
-                      wordBreak: 'break-word',
-                      whiteSpace: 'pre-wrap',
+                  <ReactMarkdown
+                    components={{
+                      pre: ({ node, ...props }) => (
+                        <pre
+                          {...props}
+                          style={{
+                            whiteSpace: 'pre-wrap',
+                            wordWrap: 'break-word',
+                            overflowWrap: 'break-word',
+                            fontSize: '13px',
+                            backgroundColor: '#f5f5f5',
+                            padding: '10px',
+                            borderRadius: '5px',
+                            overflowX: 'auto',
+                            marginTop: '8px',
+                          }}
+                        />
+                      ),
+                      code: ({ inline, children, ...props }) => (
+                        <code
+                          {...props}
+                          style={{
+                            whiteSpace: 'pre-wrap',
+                            wordWrap: 'break-word',
+                            overflowWrap: 'break-word',
+                            fontSize: '13px',
+                            backgroundColor: inline ? '#f5f5f5' : 'transparent',
+                            padding: inline ? '2px 4px' : '0',
+                            borderRadius: '3px',
+                          }}
+                        >
+                          {children}
+                        </code>
+                      ),
                     }}
                   >
-                    <ReactMarkdown
-                      components={{
-                        pre: ({ node, ...props }) => (
-                          <pre
-                            {...props}
-                            style={{
-                              whiteSpace: 'pre-wrap',
-                              wordWrap: 'break-word',
-                              overflowWrap: 'break-word',
-                              fontSize: '12px', // Decrease font size for code blocks
-                              backgroundColor: '#f5f5f5', // Optional: change background color
-                              padding: '10px', // Optional: add some padding
-                              borderRadius: '5px', // Optional: rounded corners
-                              overflowX: 'auto', // Add horizontal scroll if necessary
-                            }}
-                          />
-                        ),
-                        code: ({ node, inline, className, children, ...props }) => (
-                          <code
-                            {...props}
-                            style={{
-                              whiteSpace: 'pre-wrap',
-                              wordWrap: 'break-word',
-                              overflowWrap: 'break-word',
-                              fontSize: '12px', // Decrease font size for code
-                              backgroundColor: inline ? '#f5f5f5' : 'transparent', // Inline code styling
-                              padding: inline ? '2px 4px' : '0', // Inline code padding
-                              borderRadius: '3px', // Inline code rounded corners
-                              inline: false,
-                            }}
-                          >
-                            {children}
-                          </code>
-                        ),
-                      }}
-                    >
-                      {message.content}
-                    </ReactMarkdown>
-                  </div>
-                  {/* Display citations if available */}
+                    {message.content}
+                  </ReactMarkdown>
+
+                  {/* Display citations if available (only for assistant messages) */}
                   {message.citations && message.citations.length > 0 && (
-                    <div style={{ marginTop: '15px', fontSize: '14px' }}>
+                    <div style={{ marginTop: '10px', fontSize: '14px' }}>
                       <strong style={{ color: '#3f2b96' }}>Citations:</strong>
                       {message.citations.map((citation, i) => (
                         <div key={i}>
                           <a
                             href={citation}
                             style={{ color: '#3f2b96', textDecoration: 'underline' }}
+                            target="_blank"
+                            rel="noopener noreferrer"
                           >
                             {citation}
                           </a>
@@ -441,8 +442,35 @@ function SearchComponent() {
                 </div>
               </div>
             ))}
+
+            {/* “Assistant is typing” indicator */}
+            {isTyping && (
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'flex-start',
+                  marginBottom: '10px',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'inline-block',
+                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                    color: '#333333',
+                    borderRadius: '20px',
+                    padding: '15px',
+                    maxWidth: '70%',
+                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                    fontStyle: 'italic',
+                  }}
+                >
+                  Assistant is typing...
+                </div>
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
+
           {/* Fixed Input Field */}
           <div
             style={{
@@ -485,8 +513,9 @@ function SearchComponent() {
                 border: 'none',
                 borderRadius: '20px',
               }}
+              disabled={isTyping} // optional: prevent multiple rapid sends
             >
-              Send
+              {isTyping ? '...' : 'Send'}
             </button>
           </div>
         </div>
@@ -500,7 +529,6 @@ function SearchComponent() {
             paddingBottom: '20px',
           }}
         >
-          {/* Search Results */}
           {results.map((result, index) => (
             <div
               key={index}
@@ -521,7 +549,9 @@ function SearchComponent() {
                 }}
               >
                 <span
-                  dangerouslySetInnerHTML={{ __html: result._formatted.parent_title }}
+                  dangerouslySetInnerHTML={{
+                    __html: result._formatted.parent_title,
+                  }}
                 />
               </a>
               <p
@@ -533,7 +563,9 @@ function SearchComponent() {
                 }}
               >
                 <span
-                  dangerouslySetInnerHTML={{ __html: result._formatted.parent_summary }}
+                  dangerouslySetInnerHTML={{
+                    __html: result._formatted.parent_summary,
+                  }}
                 />
               </p>
               <div
