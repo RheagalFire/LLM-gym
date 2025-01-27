@@ -1,15 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Doodle from './assets/doodle.svg';
 import ReactMarkdown from 'react-markdown';
-import { REACT_APP_API_BASE_URL,SECRET_KEY_FOR_API } from './config';
+import { REACT_APP_API_BASE_URL, SECRET_KEY_FOR_API } from './config';
 import CryptoJS from 'crypto-js';
 import { v4 as uuidv4 } from 'uuid';
-
 
 function generateHMACSignature(secretKey, message) {
   return "sha256=" + CryptoJS.HmacSHA256(message, secretKey).toString(CryptoJS.enc.Hex);
 }
-
 
 // Debounce function to delay the execution of a function
 const debounce = (func, delay) => {
@@ -30,6 +28,14 @@ function SearchComponent() {
   const [chatMode, setChatMode] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
   const messagesEndRef = useRef(null);
+  const placeholderTexts = [
+    'Transformers..',
+    'Query Rewriting..',
+    'Late Chunking Methods',
+    'Agentic Systems',
+  ];
+
+  const [placeholder, setPlaceholder] = useState('');
 
   const handleSearch = async (searchTerm) => {
     const requestId = uuidv4();
@@ -39,7 +45,7 @@ function SearchComponent() {
     }
     try {
       const apiUrl = REACT_APP_API_BASE_URL || 'http://localhost:8001';
-      const hmacSignature = generateHMACSignature(SECRET_KEY_FOR_API,"");
+      const hmacSignature = generateHMACSignature(SECRET_KEY_FOR_API, "");
       const response = await fetch(
         `${apiUrl}/api/v1/keyword_search?keyword=${encodeURIComponent(
           searchTerm
@@ -74,6 +80,53 @@ function SearchComponent() {
     }
   }, [keyword, debouncedSearch, chatMode]);
 
+  useEffect(() => {
+    let index = 0;        // Which word we're on
+    let isDeleting = false;
+    let currentText = ''; // Current state of typed text
+    let timerId;
+
+    function type() {
+      const word = placeholderTexts[index];
+
+      // Either type or delete characters
+      if (!isDeleting) {
+        currentText = word.substring(0, currentText.length + 1);
+      } else {
+        currentText = word.substring(0, currentText.length - 1);
+      }
+
+      setPlaceholder(currentText);
+
+      // Adjust speed or “pause” as needed
+      let nextDelay = 200;
+      if (isDeleting) {
+        // Usually make deletion a bit faster, or keep the same
+        nextDelay = 100;
+      }
+
+      // If the word is fully typed, pause before deleting
+      if (!isDeleting && currentText === word) {
+        nextDelay = 1000; // wait 1s at full word
+        isDeleting = true;
+      }
+      // If nothing is left, switch to the next word
+      else if (isDeleting && currentText === '') {
+        isDeleting = false;
+        index = (index + 1) % placeholderTexts.length;
+        nextDelay = 500; // small pause before typing next word
+      }
+
+      timerId = setTimeout(type, nextDelay);
+    }
+
+    // Start the cycle
+    type();
+
+    // Cleanup on unmount
+    return () => clearTimeout(timerId);
+  }, []);
+
   const handleChat = async (message) => {
     const requestId = uuidv4();
     if (!message.trim()) return; // Prevent sending empty messages
@@ -90,7 +143,7 @@ function SearchComponent() {
           { content: message, role: 'user' },
         ],
         collection_name: 'LLM-gym',
-      })
+      });
       const hmacSignature = generateHMACSignature(SECRET_KEY_FOR_API, body);
       const response = await fetch(`${apiUrl}/api/v1/contextual_chat`, {
         method: 'POST',
@@ -242,7 +295,7 @@ function SearchComponent() {
               type="text"
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
-              placeholder="Enter keyword"
+              placeholder={placeholder}
               style={{
                 flex: 1,
                 border: 'none',
