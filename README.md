@@ -30,6 +30,7 @@
 ### Agents & Systems
 - [Building Effective Agentic Flows](https://www.anthropic.com/research/building-effective-agents): Building effective agents
 - [LLM Systems](https://www.evidentlyai.com/ml-system-design): ML & LLM Systems
+- [AI Co-Scientist](https://research.google/blog/accelerating-scientific-breakthroughs-with-an-ai-co-scientist/): AI Co-Scientist
 - [Building Agentic Sysmtes](https://huyenchip.com/2025/01/07/agents.html): Chip's guide to building Agentic Systems
 - [Agent Frameworks Comparision](https://www.galileo.ai/blog/mastering-agents-langgraph-vs-autogen-vs-crew): Comparision against different Agents
 
