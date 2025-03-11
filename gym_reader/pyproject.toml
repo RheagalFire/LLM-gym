@@ -24,6 +24,7 @@ python-multipart = "^0.0.12"
 gym_db = {path = "../gym_db", develop = true}
 dspy-ai = "2.5.40"
 redis = "^5.2.1"
+mcp = {extras = ["cli"], version = "^1.3.0"}
 
 
 [build-system]
