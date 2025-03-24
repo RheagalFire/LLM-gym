@@ -1,0 +1,1917 @@
+Directory Structure:
+├── README.md
+├── __init__.py
+├── agents
+│   ├── __init__.py
+│   └── graph_agent.py
+├── api
+│   ├── __init__.py
+│   └── main.py
+├── cli.py
+├── clients
+│   ├── __init__.py
+│   ├── mcp_client.py
+│   ├── meilisearch_client.py
+│   ├── openai_client.py
+│   ├── qdrant_client.py
+│   └── tavily_client.py
+├── mcp_servers
+│   ├── __init__.py
+│   ├── meilisearch_server.py
+│   └── qdrant_server.py
+├── notebooks
+│   └── sample_run.ipynb
+├── requirements.txt
+├── schemas
+│   ├── __init__.py
+│   └── agent_schemas.py
+├── settings.py
+└── tools
+    ├── __init__.py
+    └── search_tools.py
+
+Files Content:
+
+--- Start of requirements.txt ---
+
+langgraph>=0.0.30
+openai>=1.12.0
+qdrant-client>=1.7.0
+meilisearch>=0.25.0
+mcp>=1.3.0
+pydantic>=2.5.0
+python-dotenv>=1.0.0
+tavily-python>=0.2.2
+fastapi>=0.104.1
+uvicorn>=0.24.0 
+
+--- Start of __init__.py ---
+
+"""
+Gym Agent - A Graph Agent implementation using LangGraph
+"""
+
+__version__ = "0.1.0"
+
+
+--- Start of README.md ---
+
+# Gym Agent
+
+A Graph Agent implementation using LangGraph with access to Qdrant and MeiliSearch via MCP.
+
+## Features
+
+- Graph-based agent architecture using LangGraph
+- Direct OpenAI integration (without LangChain)
+- Vector search capabilities using Qdrant
+- Keyword search capabilities using MeiliSearch
+- Web search capabilities
+- Modular Capability Provider (MCP) integration
+
+## Setup
+
+1. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+2. Ensure environment variables are set in `.env` file:
+```
+OPENAI_API_KEY=your_openai_api_key
+QDRANT_URL=your_qdrant_url
+QDRANT_API_KEY=your_qdrant_api_key
+MEILISEARCH_URL=your_meilisearch_url
+MEILISEARCH_MASTER_KEY=your_meilisearch_master_key
+TAVILY_API_KEY=your_tavily_api_key
+```
+
+## Usage
+
+### Running the Agent
+
+```python
+from gym_agent.agents.graph_agent import GraphAgent
+
+agent = GraphAgent()
+response = agent.run("Your query here")
+print(response)
+```
+
+### Running the API Server
+
+```bash
+python -m gym_agent.api.main
+```
+
+## Architecture
+
+The agent uses a graph-based architecture with the following components:
+
+1. **Nodes**:
+   - Query Understanding
+   - Tool Selection
+   - Tool Execution
+   - Response Generation
+
+2. **Tools**:
+   - Qdrant Vector Search
+   - MeiliSearch Keyword Search
+   - Web Search
+
+3. **Clients**:
+   - OpenAI Client
+   - Qdrant Client
+   - MeiliSearch Client
+   - Tavily Client (for web search)
+
+## License
+
+This project is licensed under the same license as the parent project. 
+
+--- Start of cli.py ---
+
+import argparse
+import logging
+from typing import List, Dict, Any
+import json
+
+from gym_agent.agents.graph_agent import GraphAgent
+from gym_agent.settings import get_settings
+
+# Get settings
+settings = get_settings()
+
+
+def main():
+    """
+    Main CLI function
+    """
+    # Parse arguments
+    parser = argparse.ArgumentParser(description="Gym Agent CLI")
+    parser.add_argument("--query", "-q", type=str, help="The query to run the agent on")
+    parser.add_argument(
+        "--history", "-H", type=str, help="Path to a JSON file containing conversation history"
+    )
+    parser.add_argument(
+        "--interactive", "-i", action="store_true", help="Run in interactive mode"
+    )
+    parser.add_argument(
+        "--debug", "-d", action="store_true", help="Enable debug mode"
+    )
+    args = parser.parse_args()
+    
+    # Configure logging
+    log_level = logging.DEBUG if args.debug else logging.INFO
+    logging.basicConfig(
+        level=log_level,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    logger = logging.getLogger(__name__)
+    
+    # Create agent
+    logger.info("Creating Graph Agent")
+    agent = GraphAgent()
+    
+    # Load conversation history if provided
+    conversation_history = []
+    if args.history:
+        try:
+            logger.info(f"Loading conversation history from {args.history}")
+            with open(args.history, "r") as f:
+                conversation_history = json.load(f)
+            logger.info(f"Loaded {len(conversation_history)} messages from history")
+        except Exception as e:
+            logger.error(f"Error loading conversation history: {str(e)}")
+            conversation_history = []
+    
+    # Run in interactive mode
+    if args.interactive:
+        logger.info("Starting interactive mode")
+        print("Gym Agent CLI (Interactive Mode)")
+        print("Type 'exit' or 'quit' to exit")
+        print("Type 'history' to view conversation history")
+        print("Type 'save <filename>' to save conversation history")
+        print("Type 'debug on/off' to toggle debug mode")
+        print()
+        
+        debug_mode = args.debug
+        
+        while True:
+            # Get query
+            query = input("You: ")
+            
+            # Check for commands
+            if query.lower() in ["exit", "quit"]:
+                logger.info("Exiting interactive mode")
+                break
+            elif query.lower() == "history":
+                logger.debug("Displaying conversation history")
+                print("\nConversation History:")
+                for i, message in enumerate(conversation_history):
+                    role = message["role"]
+                    content = message["content"]
+                    print(f"{i+1}. {role.capitalize()}: {content}")
+                print()
+                continue
+            elif query.lower().startswith("save "):
+                filename = query[5:].strip()
+                try:
+                    logger.info(f"Saving conversation history to {filename}")
+                    with open(filename, "w") as f:
+                        json.dump(conversation_history, f, indent=2)
+                    print(f"Conversation history saved to {filename}")
+                except Exception as e:
+                    logger.error(f"Error saving conversation history: {str(e)}")
+                    print(f"Error saving conversation history: {str(e)}")
+                continue
+            elif query.lower() == "debug on":
+                debug_mode = True
+                logging.getLogger('gym_agent').setLevel(logging.DEBUG)
+                logger.debug("Debug mode enabled")
+                print("Debug mode enabled")
+                continue
+            elif query.lower() == "debug off":
+                debug_mode = False
+                logging.getLogger('gym_agent').setLevel(logging.INFO)
+                logger.info("Debug mode disabled")
+                print("Debug mode disabled")
+                continue
+            
+            # Run agent
+            try:
+                logger.info(f"Processing query: '{query}'")
+                response = agent.run(query=query, conversation_history=conversation_history, debug=debug_mode)
+                print(f"Agent: {response}")
+                
+                # Update conversation history
+                conversation_history.append({"role": "user", "content": query})
+                conversation_history.append({"role": "assistant", "content": response})
+                logger.debug(f"Conversation history updated, now has {len(conversation_history)} messages")
+            except Exception as e:
+                logger.error(f"Error running agent: {str(e)}")
+                logger.exception("Detailed traceback:")
+                print(f"Error: {str(e)}")
+    
+    # Run with single query
+    elif args.query:
+        try:
+            logger.info(f"Processing single query: '{args.query}'")
+            response = agent.run(query=args.query, conversation_history=conversation_history, debug=args.debug)
+            print(response)
+        except Exception as e:
+            logger.error(f"Error running agent: {str(e)}")
+            logger.exception("Detailed traceback:")
+            print(f"Error: {str(e)}")
+    
+    # No query provided
+    else:
+        parser.print_help()
+
+
+if __name__ == "__main__":
+    main()
+
+
+--- Start of settings.py ---
+
+from enum import Enum
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Optional
+
+
+class Environment(str, Enum):
+    Production = "PROD"
+    Development = "DEV"
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    ENVIRONMENT: Environment = Environment.Development
+    OPENAI_API_KEY: str = ""
+    APP_NAME: str = "gym_agent"
+    MEILISEARCH_URL: str = "http://localhost:7700"
+    MEILISEARCH_MASTER_KEY: str = "aSampleMasterKey"
+    QDRANT_URL: str = "http://localhost:6333"
+    QDRANT_API_KEY: Optional[str] = None
+    QDRANT_PORT: Optional[int] = None
+    TAVILY_API_KEY: str = ""
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
+    REDIS_PASSWORD: str = ""
+
+    # LangGraph settings
+    DEFAULT_MODEL: str = "gpt-4o"
+    DEFAULT_TEMPERATURE: float = 0.0
+    DEFAULT_MAX_TOKENS: int = 4096
+
+    def is_dev(self):
+        return self.ENVIRONMENT == Environment.Development
+
+    def is_prod(self):
+        return self.ENVIRONMENT == Environment.Production
+
+
+def get_settings():
+    return Settings()
+
+
+--- Start of clients/tavily_client.py ---
+
+from tavily import TavilyClient as BaseTavilyClient
+from tenacity import retry, stop_after_attempt, wait_exponential, RetryError
+from typing import Dict, Any
+from gym_agent.settings import get_settings
+import logging
+import requests
+import json
+
+# Configure more detailed logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+settings = get_settings()
+
+
+class TavilyClient:
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialize()
+        return cls._instance
+
+    def _initialize(self):
+        api_key = settings.TAVILY_API_KEY
+        logger.debug(f"Initializing Tavily client with API key: {'[SET]' if api_key else '[NOT SET]'}")
+        
+        if not api_key:
+            logger.warning("Tavily API key is not set. Web search will not work.")
+            self.client = None
+        else:
+            try:
+                self.client = BaseTavilyClient(api_key=api_key)
+                logger.debug("Tavily client initialized successfully")
+            except Exception as e:
+                logger.error(f"Failed to initialize Tavily client: {str(e)}")
+                self.client = None
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        reraise=True,
+    )
+    def _search_with_retry(
+        self, query: str, search_depth: str = "basic"
+    ) -> Dict[str, Any]:
+        """
+        Perform a search using Tavily
+        """
+        if not self.client:
+            logger.warning("Tavily client is not initialized. Cannot perform search.")
+            return {"results": []}
+        
+        logger.debug(f"Performing Tavily search with query: '{query}', depth: {search_depth}")
+        try:
+            result = self.client.search(query=query, search_depth=search_depth)
+            logger.debug(f"Tavily search successful, got {len(result.get('results', []))} results")
+            return result
+        except Exception as e:
+            logger.error(f"Error in _search_with_retry: {str(e)}")
+            raise
+
+    def search(self, query: str, search_depth: str = "basic") -> Dict[str, Any]:
+        """
+        Perform a search using Tavily API with exponential retry.
+
+        Args:
+            query: The search query
+            search_depth: The search depth (basic or comprehensive)
+
+        Returns:
+            The search results
+        """
+        logger.info(f"Starting Tavily search for query: '{query}' with api key: {settings.TAVILY_API_KEY}")
+        try:
+            results = self._search_with_retry(query, search_depth)
+            logger.info(f"Tavily search completed successfully with {len(results.get('results', []))} results")
+            return results
+        except RetryError as e:
+            logger.error(f"All retry attempts failed for Tavily search: {e}")
+            return {"results": []}
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Request error in Tavily search: {e}")
+            # Log response details if available
+            if hasattr(e, 'response') and e.response:
+                logger.error(f"Response status: {e.response.status_code}")
+                logger.error(f"Response headers: {e.response.headers}")
+                try:
+                    logger.error(f"Response body: {e.response.text}")
+                except:
+                    logger.error("Could not extract response body")
+            return {"results": []}
+        except Exception as e:
+            logger.error(f"Unexpected error in Tavily search: {e}")
+            return {"results": []}
+
+
+# Create a single instance of TavilyClient
+tavily_client = TavilyClient()
+
+
+if __name__ == "__main__":
+    logger.info("Testing Tavily client directly")
+    results = tavily_client.search("KV Cache")
+    logger.info(f"Got {len(results.get('results', []))} results")
+    logger.debug(f"Results: {json.dumps(results, indent=2)}")
+
+
+--- Start of clients/__init__.py ---
+
+
+
+--- Start of clients/mcp_client.py ---
+
+import asyncio
+from typing import Optional, Dict, Any
+from contextlib import AsyncExitStack
+
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+class MCPClient:
+    """
+    Client for interacting with MCP servers
+    """
+
+    def __init__(self, server_module: str):
+        """
+        Initialize the MCP client
+
+        Args:
+            server_module: The Python module path to the MCP server
+        """
+        self.server_module = server_module
+        self.session = None
+        self.exit_stack = None
+        self.stdio = None
+        self.write = None
+
+    async def connect(self):
+        """
+        Connect to the MCP server
+        """
+        if self.session is None:
+            # Create exit stack for resource management
+            self.exit_stack = AsyncExitStack()
+
+            # For HTTP-based connection, we would use different transport
+            # But for now, we'll use stdio for simplicity
+            server_params = StdioServerParameters(
+                command="python",
+                args=["-m", self.server_module],
+                env=None,
+            )
+
+            stdio_transport = await self.exit_stack.enter_async_context(
+                stdio_client(server_params)
+            )
+            self.stdio, self.write = stdio_transport
+            self.session = await self.exit_stack.enter_async_context(
+                ClientSession(self.stdio, self.write)
+            )
+
+            # Initialize the session
+            await self.session.initialize()
+
+        return self.session
+
+    async def call_tool(self, tool_name: str, params: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Call a tool on the MCP server
+
+        Args:
+            tool_name: The name of the tool to call
+            params: The parameters to pass to the tool
+
+        Returns:
+            The result of the tool call
+        """
+        session = await self.connect()
+
+        try:
+            # Call the tool directly
+            result = await session.call_tool(tool_name, params)
+
+            # Return the content from the result
+            return result.content
+        except Exception as e:
+            logger.error(f"Error calling {tool_name}: {str(e)}")
+            # Return empty dict on error
+            return {}
+
+    async def close(self):
+        """
+        Close the client connection
+        """
+        if self.exit_stack:
+            await self.exit_stack.aclose()
+            self.session = None
+            self.stdio = None
+            self.write = None
+            self.exit_stack = None
+
+
+class QdrantMCPClient(MCPClient):
+    """
+    MCP client for Qdrant
+    """
+
+    def __init__(self):
+        super().__init__("gym_agent.mcp_servers.qdrant_server")
+
+    async def search(self, collection_name: str, query_vector: list, limit: int = 5):
+        """
+        Search for similar vectors in the collection
+
+        Args:
+            collection_name: The name of the collection to search in
+            query_vector: The query vector
+            limit: The maximum number of results to return
+
+        Returns:
+            The search results
+        """
+        return await self.call_tool(
+            "search",
+            {
+                "collection_name": collection_name,
+                "query_vector": query_vector,
+                "limit": limit,
+            },
+        )
+
+
+class MeiliSearchMCPClient(MCPClient):
+    """
+    MCP client for MeiliSearch
+    """
+
+    def __init__(self):
+        super().__init__("gym_agent.mcp_servers.meilisearch_server")
+
+    async def search(self, index_name: str, query: str, limit: int = 5):
+        """
+        Search for documents in the index
+
+        Args:
+            index_name: The name of the index to search in
+            query: The search query
+            limit: The maximum number of results to return
+
+        Returns:
+            The search results
+        """
+        return await self.call_tool(
+            "search", {"index_name": index_name, "query": query, "limit": limit}
+        )
+
+
+--- Start of clients/meilisearch_client.py ---
+
+from meilisearch import Client as MeiliClient
+from gym_agent.settings import get_settings
+
+settings = get_settings()
+
+
+class GymAgentMeiliSearchClient:
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._init_client()
+        return cls._instance
+
+    def _init_client(self):
+        self.client = MeiliClient(
+            settings.MEILISEARCH_URL, settings.MEILISEARCH_MASTER_KEY
+        )
+
+    def get_client(self):
+        return self.client
+
+    def search(self, index_name, query, limit=5, search_settings=None):
+        """
+        Search for documents in the index.
+
+        Args:
+            index_name: The name of the index to search in
+            query: The search query
+            limit: The maximum number of results to return
+            search_settings: Additional search settings
+
+        Returns:
+            The search results
+        """
+        if search_settings is None:
+            search_settings = {
+                "limit": limit,
+                "attributesToHighlight": ["*"],
+                "highlightPreTag": "<em>",
+                "highlightPostTag": "</em>",
+            }
+
+        return self.client.index(index_name).search(query, search_settings)
+
+
+meilisearch_client = GymAgentMeiliSearchClient().get_client()
+
+
+--- Start of clients/openai_client.py ---
+
+from openai import OpenAI
+from gym_agent.settings import get_settings
+
+settings = get_settings()
+openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
+
+
+def get_completion(
+    prompt: str,
+    model: str = settings.DEFAULT_MODEL,
+    temperature: float = settings.DEFAULT_TEMPERATURE,
+    max_tokens: int = settings.DEFAULT_MAX_TOKENS,
+    system_message: str = "You are a helpful assistant.",
+):
+    """
+    Get a completion from the OpenAI API.
+
+    Args:
+        prompt: The prompt to send to the API
+        model: The model to use
+        temperature: The temperature to use
+        max_tokens: The maximum number of tokens to generate
+        system_message: The system message to use
+
+    Returns:
+        The completion text
+    """
+    response = openai_client.chat.completions.create(
+        model=model,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        messages=[
+            {"role": "system", "content": system_message},
+            {"role": "user", "content": prompt},
+        ],
+    )
+    return response.choices[0].message.content
+
+
+def get_structured_output(
+    prompt: str,
+    model: str = settings.DEFAULT_MODEL,
+    temperature: float = settings.DEFAULT_TEMPERATURE,
+    max_tokens: int = settings.DEFAULT_MAX_TOKENS,
+    system_message: str = "You are a helpful assistant.",
+    response_format=None,
+):
+    """
+    Get a structured output from the OpenAI API.
+
+    Args:
+        prompt: The prompt to send to the API
+        model: The model to use
+        temperature: The temperature to use
+        max_tokens: The maximum number of tokens to generate
+        system_message: The system message to use
+        response_format: The response format to use (e.g., {"type": "json_object"})
+
+    Returns:
+        The structured output
+    """
+    kwargs = {
+        "model": model,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        "messages": [
+            {"role": "system", "content": system_message},
+            {"role": "user", "content": prompt},
+        ],
+    }
+
+    if response_format:
+        kwargs["response_format"] = response_format
+
+    response = openai_client.chat.completions.create(**kwargs)
+    return response.choices[0].message.content
+
+
+--- Start of clients/qdrant_client.py ---
+
+from qdrant_client import QdrantClient
+from gym_agent.settings import get_settings
+
+settings = get_settings()
+
+
+class GymAgentQdrantClient:
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._init_client()
+        return cls._instance
+
+    def _init_client(self):
+        self.client = QdrantClient(
+            url=settings.QDRANT_URL,
+            api_key=settings.QDRANT_API_KEY,
+            port=settings.QDRANT_PORT,
+        )
+
+    def get_client(self):
+        return self.client
+
+    def search(self, collection_name, query_vector, limit=5):
+        """
+        Search for similar vectors in the collection.
+
+        Args:
+            collection_name: The name of the collection to search in
+            query_vector: The query vector
+            limit: The maximum number of results to return
+
+        Returns:
+            The search results
+        """
+        return self.client.search(
+            collection_name=collection_name, query_vector=query_vector, limit=limit
+        )
+
+
+qdrant_client = GymAgentQdrantClient().get_client()
+
+
+--- Start of tools/search_tools.py ---
+
+import asyncio
+from typing import Dict, Any, List, Optional
+import logging
+import json
+from gym_agent.clients.qdrant_client import qdrant_client
+from gym_agent.clients.meilisearch_client import meilisearch_client
+from gym_agent.clients.tavily_client import tavily_client
+from gym_agent.clients.openai_client import openai_client
+from gym_agent.clients.mcp_client import QdrantMCPClient, MeiliSearchMCPClient
+from gym_agent.schemas.agent_schemas import ToolExecutionResult, ToolType
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+
+class SearchTools:
+    """
+    Tools for searching various data sources
+    """
+
+    @staticmethod
+    def get_embedding(text: str) -> List[float]:
+        """
+        Get an embedding for the given text using OpenAI
+
+        Args:
+            text: The text to embed
+
+        Returns:
+            The embedding vector
+        """
+        logger.debug(f"Getting embedding for text: '{text[:50]}...' (truncated)")
+        try:
+            response = openai_client.embeddings.create(
+                model="text-embedding-3-small", input=text, dimensions=1536
+            )
+            logger.debug("Successfully obtained embedding")
+            return response.data[0].embedding
+        except Exception as e:
+            logger.error(f"Error getting embedding: {str(e)}")
+            raise
+
+    @staticmethod
+    def search_qdrant(
+        query: str, collection_name: str, limit: int = 5
+    ) -> ToolExecutionResult:
+        """
+        Search Qdrant for the given query
+
+        Args:
+            query: The search query
+            collection_name: The name of the collection to search in
+            limit: The maximum number of results to return
+
+        Returns:
+            The search results
+        """
+        logger.info(f"Searching Qdrant with query: '{query}'")
+        try:
+            # Get the embedding for the query
+            logger.debug("Getting embedding for Qdrant search")
+            query_vector = SearchTools.get_embedding(query)
+
+            # Search Qdrant
+            logger.debug(f"Searching Qdrant collection '{collection_name}' with limit {limit}")
+            results = qdrant_client.search(
+                collection_name=collection_name, query_vector=query_vector, limit=limit
+            )
+
+            logger.info(f"Qdrant search returned {len(results)} results")
+
+            # Process the results
+            processed_results = "Search Results:\n\n"
+            for i, result in enumerate(results):
+                processed_results += f"{i+1}. Score: {result.score:.4f}\n"
+                for key, value in result.payload.items():
+                    if isinstance(value, str) and len(value) > 300:
+                        value = value[:300] + "..."
+                    processed_results += f"   {key}: {value}\n"
+                processed_results += "\n"
+
+            logger.debug("Processed Qdrant results successfully")
+            return ToolExecutionResult(
+                tool_type=ToolType.QDRANT_SEARCH,
+                raw_results=[
+                    dict(id=r.id, score=r.score, payload=r.payload) for r in results
+                ],
+                processed_results=processed_results,
+            )
+        except Exception as e:
+            error_message = f"Error searching Qdrant: {str(e)}"
+            logger.error(error_message)
+            return ToolExecutionResult(
+                tool_type=ToolType.QDRANT_SEARCH,
+                raw_results=[],
+                processed_results="No results found due to an error.",
+                error=error_message,
+            )
+
+    @staticmethod
+    def search_meilisearch(
+        query: str, index_name: str, limit: int = 5
+    ) -> ToolExecutionResult:
+        """
+        Search MeiliSearch for the given query
+
+        Args:
+            query: The search query
+            index_name: The name of the index to search in
+            limit: The maximum number of results to return
+
+        Returns:
+            The search results
+        """
+        logger.info(f"Searching MeiliSearch with query: '{query}'")
+        try:
+            # Search MeiliSearch
+            search_settings = {
+                "limit": limit,
+                "attributesToHighlight": ["*"],
+                "highlightPreTag": "<em>",
+                "highlightPostTag": "</em>",
+            }
+
+            logger.debug(f"Searching MeiliSearch index '{index_name}' with settings: {json.dumps(search_settings)}")
+            results = meilisearch_client.index(index_name).search(
+                query, search_settings
+            )
+
+            logger.info(f"MeiliSearch returned {len(results.get('hits', []))} results")
+
+            # Process the results
+            processed_results = "Search Results:\n\n"
+            for i, hit in enumerate(results["hits"]):
+                processed_results += f"{i+1}. "
+                if "parent_title" in hit:
+                    processed_results += f"Title: {hit['parent_title']}\n"
+                if "parent_link" in hit:
+                    processed_results += f"   URL: {hit['parent_link']}\n"
+                if "parent_summary" in hit:
+                    summary = hit["parent_summary"]
+                    if len(summary) > 300:
+                        summary = summary[:300] + "..."
+                    processed_results += f"   Summary: {summary}\n"
+                if "parent_keywords" in hit and hit["parent_keywords"]:
+                    processed_results += (
+                        f"   Keywords: {', '.join(hit['parent_keywords'][:5])}\n"
+                    )
+                processed_results += "\n"
+
+            logger.debug("Processed MeiliSearch results successfully")
+            return ToolExecutionResult(
+                tool_type=ToolType.MEILISEARCH,
+                raw_results=results["hits"],
+                processed_results=processed_results,
+            )
+        except Exception as e:
+            error_message = f"Error searching MeiliSearch: {str(e)}"
+            logger.error(error_message)
+            return ToolExecutionResult(
+                tool_type=ToolType.MEILISEARCH,
+                raw_results=[],
+                processed_results="No results found due to an error.",
+                error=error_message,
+            )
+
+    @staticmethod
+    def search_web(query: str, search_depth: str = "basic") -> ToolExecutionResult:
+        """
+        Search the web for the given query using Tavily
+
+        Args:
+            query: The search query
+            search_depth: The search depth (basic or comprehensive)
+
+        Returns:
+            The search results
+        """
+        logger.info(f"Searching the web with query: '{query}', depth: {search_depth}")
+        try:
+            # Search the web
+            logger.debug("Calling Tavily client for web search")
+            results = tavily_client.search(query, search_depth)
+
+            # Log detailed information about the results
+            num_results = len(results.get("results", []))
+            logger.info(f"Web search returned {num_results} results")
+
+            if num_results > 0:
+                logger.debug("Sample of web search results:")
+                for i, result in enumerate(results.get("results", [])[:2]):  # Log first 2 results
+                    logger.debug(f"Result {i+1}: {result.get('title', 'No title')} - {result.get('url', 'No URL')}")
+            else:
+                logger.warning("Web search returned no results")
+
+            # Process the results
+            processed_results = "Web Search Results:\n\n"
+            for i, result in enumerate(results.get("results", [])):
+                processed_results += (
+                    f"{i+1}. Title: {result.get('title', 'No title')}\n"
+                )
+                processed_results += f"   URL: {result.get('url', 'No URL')}\n"
+
+                content = result.get("content", "No content")
+                if len(content) > 300:
+                    content = content[:300] + "..."
+                processed_results += f"   Content: {content}\n\n"
+
+            logger.debug("Processed web search results successfully")
+            return ToolExecutionResult(
+                tool_type=ToolType.WEB_SEARCH,
+                raw_results=results.get("results", []),
+                processed_results=processed_results,
+            )
+        except Exception as e:
+            error_message = f"Error searching the web: {str(e)}"
+            logger.error(error_message)
+            logger.exception("Detailed traceback for web search error:")
+            return ToolExecutionResult(
+                tool_type=ToolType.WEB_SEARCH,
+                raw_results=[],
+                processed_results="No results found due to an error.",
+                error=error_message,
+            )
+
+    @staticmethod
+    async def search_qdrant_mcp(
+        query: str, collection_name: str, limit: int = 5
+    ) -> ToolExecutionResult:
+        """
+        Search Qdrant for the given query using MCP
+
+        Args:
+            query: The search query
+            collection_name: The name of the collection to search in
+            limit: The maximum number of results to return
+
+        Returns:
+            The search results
+        """
+        try:
+            # Get the embedding for the query
+            query_vector = SearchTools.get_embedding(query)
+
+            # Create MCP client
+            client = QdrantMCPClient()
+
+            # Search Qdrant
+            results = await client.search(
+                collection_name=collection_name, query_vector=query_vector, limit=limit
+            )
+
+            # Process the results
+            processed_results = "Search Results:\n\n"
+            for i, result in enumerate(results):
+                processed_results += f"{i+1}. Score: {result.get('score', 0):.4f}\n"
+                for key, value in result.get("payload", {}).items():
+                    if isinstance(value, str) and len(value) > 300:
+                        value = value[:300] + "..."
+                    processed_results += f"   {key}: {value}\n"
+                processed_results += "\n"
+
+            return ToolExecutionResult(
+                tool_type=ToolType.QDRANT_SEARCH,
+                raw_results=results,
+                processed_results=processed_results,
+            )
+        except Exception as e:
+            error_message = f"Error searching Qdrant via MCP: {str(e)}"
+            return ToolExecutionResult(
+                tool_type=ToolType.QDRANT_SEARCH,
+                raw_results=[],
+                processed_results="No results found due to an error.",
+                error=error_message,
+            )
+
+    @staticmethod
+    async def search_meilisearch_mcp(
+        query: str, index_name: str, limit: int = 5
+    ) -> ToolExecutionResult:
+        """
+        Search MeiliSearch for the given query using MCP
+
+        Args:
+            query: The search query
+            index_name: The name of the index to search in
+            limit: The maximum number of results to return
+
+        Returns:
+            The search results
+        """
+        try:
+            # Create MCP client
+            client = MeiliSearchMCPClient()
+
+            # Search MeiliSearch
+            results = await client.search(
+                index_name=index_name, query=query, limit=limit
+            )
+
+            # Process the results
+            processed_results = "Search Results:\n\n"
+            for i, hit in enumerate(results.get("hits", [])):
+                processed_results += f"{i+1}. "
+                if "parent_title" in hit:
+                    processed_results += f"Title: {hit['parent_title']}\n"
+                if "parent_link" in hit:
+                    processed_results += f"   URL: {hit['parent_link']}\n"
+                if "parent_summary" in hit:
+                    summary = hit["parent_summary"]
+                    if len(summary) > 300:
+                        summary = summary[:300] + "..."
+                    processed_results += f"   Summary: {summary}\n"
+                if "parent_keywords" in hit and hit["parent_keywords"]:
+                    processed_results += (
+                        f"   Keywords: {', '.join(hit['parent_keywords'][:5])}\n"
+                    )
+                processed_results += "\n"
+
+            return ToolExecutionResult(
+                tool_type=ToolType.MEILISEARCH,
+                raw_results=results.get("hits", []),
+                processed_results=processed_results,
+            )
+        except Exception as e:
+            error_message = f"Error searching MeiliSearch via MCP: {str(e)}"
+            return ToolExecutionResult(
+                tool_type=ToolType.MEILISEARCH,
+                raw_results=[],
+                processed_results="No results found due to an error.",
+                error=error_message,
+            )
+
+
+--- Start of tools/__init__.py ---
+
+
+
+--- Start of agents/__init__.py ---
+
+
+
+--- Start of agents/graph_agent.py ---
+
+import json
+import asyncio
+from typing import Dict, Any, List, Optional, Tuple, Union, Annotated
+from pydantic import BaseModel, Field
+import logging
+
+from langgraph.graph import StateGraph, END
+from langgraph.prebuilt import ToolNode
+from langgraph.graph.message import AnyMessage
+
+from gym_agent.clients.openai_client import get_structured_output, get_completion
+from gym_agent.schemas.agent_schemas import (
+    AgentState,
+    QueryUnderstanding,
+    ToolSelection,
+    ToolExecutionResult,
+    AgentResponse,
+    ToolType,
+)
+from gym_agent.tools.search_tools import SearchTools
+from gym_agent.settings import get_settings
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+settings = get_settings()
+
+
+class GraphAgent:
+    """
+    A graph-based agent using LangGraph
+    """
+
+    def __init__(self):
+        """
+        Initialize the graph agent
+        """
+        self.graph = self._build_graph()
+
+    def _build_graph(self) -> StateGraph:
+        """
+        Build the graph for the agent
+
+        Returns:
+            The state graph
+        """
+        # Create the graph
+        builder = StateGraph(AgentState)
+
+        # Add nodes - using different names for nodes to avoid collision with state fields
+        builder.add_node("understand_query", self._query_understanding)
+        builder.add_node("select_tool", self._tool_selection)
+        builder.add_node("execute_tool", self._tool_execution)
+        builder.add_node("generate_response", self._response_generation)
+
+        # Add edges
+        builder.add_edge("understand_query", "select_tool")
+        builder.add_edge("select_tool", "execute_tool")
+        builder.add_edge("execute_tool", "generate_response")
+        builder.add_edge("generate_response", END)
+
+        # Set the entry point
+        builder.set_entry_point("understand_query")
+
+        # Compile the graph
+        return builder.compile()
+
+    def _query_understanding(self, state: AgentState) -> AgentState:
+        """
+        Understand the query and determine the required tools
+
+        Args:
+            state: The current state
+
+        Returns:
+            The updated state
+        """
+        system_message = """
+        You are an AI assistant that helps users find information. Your task is to understand the user's query and determine the best approach to answer it.
+        
+        1. Analyze the query to understand its intent
+        2. Rephrase the query to make it more effective for search
+        3. Determine which tools are required to answer the query
+        
+        Available tools:
+        - qdrant_search: For semantic vector search
+        - meilisearch: For keyword-based search
+        - web_search: For searching the web for up-to-date information
+        - none: If no tools are required to answer the query
+        
+        Respond with a JSON object containing the following fields:
+        - "intent": A string describing the intent of the query
+        - "rephrased_query": A string with the rephrased query
+        - "required_tools": An array of strings with the required tools (from the list above)
+        """
+
+        prompt = f"""
+        User Query: {state.query}
+        
+        Conversation History: {state.conversation_history}
+        
+        Analyze the query and provide:
+        1. The intent of the query
+        2. A rephrased version of the query that would be more effective for search
+        3. The tools required to answer the query
+        
+        Format your response as JSON.
+        """
+
+        # Get structured output
+        result = get_structured_output(
+            prompt=prompt,
+            system_message=system_message,
+            response_format={"type": "json_object"},
+            model=settings.DEFAULT_MODEL,
+        )
+
+        # Parse the result
+        result_dict = json.loads(result)
+
+        # Create QueryUnderstanding object
+        query_understanding = QueryUnderstanding(
+            query=state.query,
+            rephrased_query=result_dict.get("rephrased_query", state.query),
+            intent=result_dict.get("intent", ""),
+            required_tools=[
+                ToolType(tool)
+                for tool in result_dict.get("required_tools", [ToolType.NONE])
+            ],
+        )
+
+        # Update the state
+        return AgentState(
+            query=state.query,
+            query_understanding=query_understanding,
+            conversation_history=state.conversation_history,
+        )
+
+    def _tool_selection(self, state: AgentState) -> AgentState:
+        """
+        Select the appropriate tool based on the query understanding
+
+        Args:
+            state: The current state
+
+        Returns:
+            The updated state
+        """
+        system_message = """
+        You are an AI assistant that helps users find information. Your task is to select the most appropriate tool to answer the user's query.
+        
+        Available tools:
+        - qdrant_search: For semantic vector search
+        - meilisearch: For keyword-based search
+        - web_search: For searching the web for up-to-date information
+        - none: If no tools are required to answer the query
+        
+        For each tool, you need to provide the appropriate parameters:
+        - qdrant_search: collection_name, query, limit
+        - meilisearch: index_name, query, limit
+        - web_search: query, search_depth (basic or comprehensive)
+        - none: No parameters required
+        
+        Respond with a JSON object containing the following fields:
+        - "selected_tool": A string with the selected tool (from the list above)
+        - "tool_params": An object with the parameters for the selected tool
+        - "reasoning": A string explaining why you selected this tool
+        """
+
+        prompt = f"""
+        User Query: {state.query}
+        
+        Query Understanding:
+        - Rephrased Query: {state.query_understanding.rephrased_query}
+        - Intent: {state.query_understanding.intent}
+        - Required Tools: {[tool.value for tool in state.query_understanding.required_tools]}
+        
+        Select the most appropriate tool and provide the necessary parameters.
+        
+        Format your response as JSON.
+        """
+
+        # Get structured output
+        result = get_structured_output(
+            prompt=prompt,
+            system_message=system_message,
+            response_format={"type": "json_object"},
+            model=settings.DEFAULT_MODEL,
+        )
+
+        # Parse the result
+        result_dict = json.loads(result)
+
+        # Create ToolSelection object
+        tool_selection = ToolSelection(
+            selected_tool=ToolType(result_dict.get("selected_tool", ToolType.NONE)),
+            tool_params=result_dict.get("tool_params", {}),
+            reasoning=result_dict.get("reasoning", ""),
+        )
+
+        # Update the state
+        return AgentState(
+            query=state.query,
+            query_understanding=state.query_understanding,
+            tool_selection=tool_selection,
+            conversation_history=state.conversation_history,
+        )
+
+    def _tool_execution(self, state: AgentState) -> AgentState:
+        """
+        Execute the selected tool
+
+        Args:
+            state: The current state
+
+        Returns:
+            The updated state
+        """
+        # Get the selected tool and parameters
+        selected_tool = state.tool_selection.selected_tool
+        tool_params = state.tool_selection.tool_params
+        
+        logger.info(f"Executing tool: {selected_tool.value}")
+        logger.debug(f"Tool parameters: {json.dumps(tool_params, default=str)}")
+
+        # Execute the tool
+        if selected_tool == ToolType.QDRANT_SEARCH:
+            logger.info("Using Qdrant search")
+            query = tool_params.get("query", state.query_understanding.rephrased_query)
+            collection_name = tool_params.get("collection_name", "LLM-gym")
+            limit = tool_params.get("limit", 5)
+            
+            logger.debug(f"Qdrant search parameters - query: '{query}', collection: '{collection_name}', limit: {limit}")
+            
+            # Use direct client instead of MCP to avoid async issues
+            try:
+                tool_result = SearchTools.search_qdrant(
+                    query=query,
+                    collection_name=collection_name,
+                    limit=limit
+                )
+                logger.info(f"Qdrant search completed with {len(tool_result.raw_results)} results")
+            except Exception as e:
+                logger.error(f"Error during Qdrant search: {str(e)}")
+                tool_result = ToolExecutionResult(
+                    tool_type=ToolType.QDRANT_SEARCH,
+                    raw_results=[],
+                    processed_results=f"Qdrant search failed with error: {str(e)}. Using model's knowledge to answer the query.",
+                    error=str(e)
+                )
+
+        elif selected_tool == ToolType.MEILISEARCH:
+            logger.info("Using MeiliSearch")
+            query = tool_params.get("query", state.query_understanding.rephrased_query)
+            index_name = tool_params.get("index_name", "LLM-gym")
+            limit = tool_params.get("limit", 5)
+            
+            logger.debug(f"MeiliSearch parameters - query: '{query}', index: '{index_name}', limit: {limit}")
+            
+            # Use direct client instead of MCP to avoid async issues
+            try:
+                tool_result = SearchTools.search_meilisearch(
+                    query=query,
+                    index_name=index_name,
+                    limit=limit
+                )
+                logger.info(f"MeiliSearch completed with {len(tool_result.raw_results)} results")
+            except Exception as e:
+                logger.error(f"Error during MeiliSearch: {str(e)}")
+                tool_result = ToolExecutionResult(
+                    tool_type=ToolType.MEILISEARCH,
+                    raw_results=[],
+                    processed_results=f"MeiliSearch failed with error: {str(e)}. Using model's knowledge to answer the query.",
+                    error=str(e)
+                )
+
+        elif selected_tool == ToolType.WEB_SEARCH:
+            logger.info("Using Web Search (Tavily)")
+            query = tool_params.get("query", state.query_understanding.rephrased_query)
+            search_depth = "basic"
+            
+            logger.info(f"Web search parameters - query: '{query}', depth: '{search_depth}'")
+            
+            try:
+                tool_result = SearchTools.search_web(
+                    query=query,
+                    search_depth=search_depth
+                )
+                logger.info(f"Web search completed with {len(tool_result.raw_results)} results")
+                
+                # Check if we got any results
+                if not tool_result.raw_results:
+                    logger.warning("Web search returned no results")
+                    # If web search failed or returned no results, add a note to the processed results
+                    tool_result = ToolExecutionResult(
+                        tool_type=ToolType.WEB_SEARCH,
+                        raw_results=[],
+                        processed_results="Web search was attempted but returned no results. Using model's knowledge to answer the query.",
+                        error="No web search results found."
+                    )
+            except Exception as e:
+                logger.error(f"Error during web search: {str(e)}")
+                # Handle any exceptions during web search
+                tool_result = ToolExecutionResult(
+                    tool_type=ToolType.WEB_SEARCH,
+                    raw_results=[],
+                    processed_results=f"Web search failed with error: {str(e)}. Using model's knowledge to answer the query.",
+                    error=str(e)
+                )
+
+        else:  # ToolType.NONE
+            logger.info("No tool execution required")
+            tool_result = ToolExecutionResult(
+                tool_type=ToolType.NONE,
+                raw_results=[],
+                processed_results="No tool execution required."
+            )
+
+        logger.debug(f"Tool execution result: {tool_result.tool_type.value}, error: {tool_result.error or 'None'}")
+        
+        # Update the state
+        return AgentState(
+            query=state.query,
+            query_understanding=state.query_understanding,
+            tool_selection=state.tool_selection,
+            tool_execution_result=tool_result,
+            conversation_history=state.conversation_history,
+        )
+
+    def _response_generation(self, state: AgentState) -> AgentState:
+        """
+        Generate a response based on the tool execution results
+
+        Args:
+            state: The current state
+
+        Returns:
+            The updated state
+        """
+        system_message = """
+        You are an AI assistant that helps users find information. Your task is to generate a helpful response based on the search results.
+        
+        1. Analyze the search results
+        2. Extract the most relevant information
+        3. Provide a comprehensive answer to the user's query
+        4. Include sources for the information
+        5. Indicate your confidence in the answer (0-1)
+        
+        Respond with a JSON object containing the following fields:
+        - "answer": A string with the comprehensive answer to the user's query
+        - "sources": An array of objects, each with "title" and "url" fields
+        - "confidence": A number between 0 and 1 indicating your confidence in the answer
+        """
+
+        prompt = f"""
+        User Query: {state.query}
+        
+        Query Understanding:
+        - Rephrased Query: {state.query_understanding.rephrased_query}
+        - Intent: {state.query_understanding.intent}
+        
+        Tool Execution Results:
+        - Tool: {state.tool_execution_result.tool_type.value}
+        - Results: {state.tool_execution_result.processed_results}
+        
+        Generate a comprehensive response to the user's query based on the search results.
+        
+        Format your response as JSON.
+        """
+
+        # Get structured output
+        result = get_structured_output(
+            prompt=prompt,
+            system_message=system_message,
+            response_format={"type": "json_object"},
+            model=settings.DEFAULT_MODEL,
+        )
+
+        # Parse the result
+        result_dict = json.loads(result)
+
+        # Create AgentResponse object
+        response = AgentResponse(
+            answer=result_dict.get(
+                "answer", "I couldn't find an answer to your query."
+            ),
+            sources=result_dict.get("sources", []),
+            confidence=result_dict.get("confidence", 0.0),
+        )
+
+        # Update conversation history
+        conversation_history = state.conversation_history.copy()
+        conversation_history.append({"role": "user", "content": state.query})
+        conversation_history.append({"role": "assistant", "content": response.answer})
+
+        # Update the state
+        return AgentState(
+            query=state.query,
+            query_understanding=state.query_understanding,
+            tool_selection=state.tool_selection,
+            tool_execution_result=state.tool_execution_result,
+            response=response,
+            conversation_history=conversation_history,
+        )
+
+    def run(
+        self, query: str, conversation_history: Optional[List[Dict[str, str]]] = None, debug: bool = False
+    ) -> str:
+        """
+        Run the agent on the given query
+
+        Args:
+            query: The query to run the agent on
+            conversation_history: The conversation history
+            debug: Whether to run in debug mode (prints additional information)
+
+        Returns:
+            The agent's response
+        """
+        logger.info(f"Running agent with query: '{query}'")
+        if debug:
+            # Set logging level to DEBUG for this run
+            logging.getLogger('gym_agent').setLevel(logging.DEBUG)
+            logger.debug("Debug mode enabled")
+        
+        if conversation_history is None:
+            conversation_history = []
+        
+        logger.debug(f"Conversation history has {len(conversation_history)} messages")
+
+        # Create the initial state
+        initial_state = AgentState(
+            query=query, conversation_history=conversation_history
+        )
+        
+        logger.info("Invoking graph")
+        try:
+            # Run the graph
+            final_state = self.graph.invoke(initial_state)
+            logger.info("Graph execution completed successfully")
+            
+            if debug:
+                # Log the final state structure
+                if isinstance(final_state, dict):
+                    logger.debug(f"Final state keys: {list(final_state.keys())}")
+                else:
+                    logger.debug(f"Final state type: {type(final_state)}")
+            
+            # Return the response
+            # In LangGraph, the final state is returned as a dictionary
+            if isinstance(final_state, dict) and "response" in final_state:
+                if final_state["response"]:
+                    logger.info("Successfully extracted response from final state")
+                    return final_state["response"].answer
+                else:
+                    logger.warning("Response object is None in final state")
+            else:
+                logger.warning(f"No 'response' key in final state or final state is not a dictionary")
+        
+        except Exception as e:
+            logger.error(f"Error during graph execution: {str(e)}")
+            logger.exception("Detailed traceback:")
+        
+        # Fallback response if we can't get the proper response
+        logger.warning("Using fallback response")
+        return "I couldn't generate a response to your query."
+
+
+# Example usage
+if __name__ == "__main__":
+    agent = GraphAgent()
+    response = agent.run("What are the key concepts in LLM inference?")
+    print(response)
+
+
+--- Start of schemas/__init__.py ---
+
+
+
+--- Start of schemas/agent_schemas.py ---
+
+from enum import Enum
+from pydantic import BaseModel, Field
+from typing import List, Dict, Any, Optional, Union
+
+
+class ToolType(str, Enum):
+    QDRANT_SEARCH = "qdrant_search"
+    MEILISEARCH = "meilisearch"
+    WEB_SEARCH = "web_search"
+    NONE = "none"
+
+
+class QueryUnderstanding(BaseModel):
+    """Schema for the query understanding node output"""
+
+    query: str = Field(..., description="The original query from the user")
+    rephrased_query: str = Field(
+        ..., description="The rephrased query for better search results"
+    )
+    intent: str = Field(..., description="The intent of the query")
+    required_tools: List[ToolType] = Field(
+        ..., description="The tools required to answer the query"
+    )
+
+
+class ToolSelection(BaseModel):
+    """Schema for the tool selection node output"""
+
+    selected_tool: ToolType = Field(..., description="The selected tool to use")
+    tool_params: Dict[str, Any] = Field(
+        ..., description="The parameters to pass to the tool"
+    )
+    reasoning: str = Field(..., description="The reasoning for selecting this tool")
+
+
+class QdrantSearchResult(BaseModel):
+    """Schema for Qdrant search results"""
+
+    id: str = Field(..., description="The ID of the document")
+    score: float = Field(..., description="The similarity score")
+    payload: Dict[str, Any] = Field(..., description="The document payload")
+
+
+class MeiliSearchResult(BaseModel):
+    """Schema for MeiliSearch results"""
+
+    id: str = Field(..., description="The ID of the document")
+    title: str = Field(..., description="The title of the document")
+    content: str = Field(..., description="The content of the document")
+    url: Optional[str] = Field(None, description="The URL of the document")
+    highlights: Dict[str, List[str]] = Field(
+        ..., description="The highlighted parts of the document"
+    )
+
+
+class WebSearchResult(BaseModel):
+    """Schema for web search results"""
+
+    title: str = Field(..., description="The title of the webpage")
+    content: str = Field(..., description="The content of the webpage")
+    url: str = Field(..., description="The URL of the webpage")
+
+
+class ToolExecutionResult(BaseModel):
+    """Schema for the tool execution node output"""
+
+    tool_type: ToolType = Field(..., description="The type of tool that was executed")
+    raw_results: List[Dict[str, Any]] = Field(
+        ..., description="The raw results from the tool"
+    )
+    processed_results: str = Field(
+        ..., description="The processed results in a format suitable for the LLM"
+    )
+    error: Optional[str] = Field(
+        None, description="Any error that occurred during tool execution"
+    )
+
+
+class AgentResponse(BaseModel):
+    """Schema for the final agent response"""
+
+    answer: str = Field(..., description="The answer to the user's query")
+    sources: List[Dict[str, str]] = Field(
+        ..., description="The sources used to generate the answer"
+    )
+    confidence: float = Field(..., description="The confidence in the answer (0-1)")
+
+
+class AgentState(BaseModel):
+    """Schema for the agent state"""
+
+    query: str = Field(..., description="The original query from the user")
+    query_understanding: Optional[QueryUnderstanding] = Field(
+        None, description="The output of the query understanding node"
+    )
+    tool_selection: Optional[ToolSelection] = Field(
+        None, description="The output of the tool selection node"
+    )
+    tool_execution_result: Optional[ToolExecutionResult] = Field(
+        None, description="The output of the tool execution node"
+    )
+    response: Optional[AgentResponse] = Field(
+        None, description="The final response from the agent"
+    )
+    conversation_history: List[Dict[str, str]] = Field(
+        default_factory=list, description="The conversation history"
+    )
+
+
+--- Start of mcp_servers/__init__.py ---
+
+
+
+--- Start of mcp_servers/meilisearch_server.py ---
+
+from mcp.server.fastmcp import FastMCP
+from gym_agent.clients.meilisearch_client import meilisearch_client
+import asyncio
+
+mcp = FastMCP("MeiliSearch MCP Server")
+
+
+@mcp.tool("search")
+async def search(index_name: str, query: str, limit: int = 5):
+    """
+    Search for documents in the index
+
+    Args:
+        index_name: The name of the index to search in
+        query: The search query
+        limit: The maximum number of results to return
+
+    Returns:
+        The search results
+    """
+    try:
+        search_settings = {
+            "limit": limit,
+            "attributesToHighlight": ["*"],
+            "highlightPreTag": "<em>",
+            "highlightPostTag": "</em>",
+        }
+
+        results = meilisearch_client.index(index_name).search(query, search_settings)
+        return results
+    except Exception as e:
+        print(f"Error searching MeiliSearch: {str(e)}")
+        return {"hits": []}
+
+
+if __name__ == "__main__":
+    asyncio.run(mcp.run())
+
+
+--- Start of mcp_servers/qdrant_server.py ---
+
+from mcp.server.fastmcp import FastMCP
+from gym_agent.clients.qdrant_client import qdrant_client
+import asyncio
+
+mcp = FastMCP("Qdrant MCP Server")
+
+
+@mcp.tool("search")
+async def search(collection_name: str, query_vector: list, limit: int = 5):
+    """
+    Search for similar vectors in the collection
+
+    Args:
+        collection_name: The name of the collection to search in
+        query_vector: The query vector
+        limit: The maximum number of results to return
+
+    Returns:
+        The search results
+    """
+    try:
+        results = qdrant_client.search(
+            collection_name=collection_name, query_vector=query_vector, limit=limit
+        )
+        return results
+    except Exception as e:
+        print(f"Error searching Qdrant: {str(e)}")
+        return []
+
+
+if __name__ == "__main__":
+    asyncio.run(mcp.run())
+
+
+--- Start of api/__init__.py ---
+
+
+
+--- Start of api/main.py ---
+
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import List, Dict, Any, Optional
+import uvicorn
+import logging
+
+from gym_agent.agents.graph_agent import GraphAgent
+from gym_agent.settings import get_settings
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Get settings
+settings = get_settings()
+
+# Create FastAPI app
+app = FastAPI(title="Gym Agent API", description="API for the Gym Agent")
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Create agent instance
+agent = GraphAgent()
+
+
+class QueryRequest(BaseModel):
+    """Request model for the query endpoint"""
+
+    query: str
+    conversation_history: Optional[List[Dict[str, str]]] = None
+
+
+class QueryResponse(BaseModel):
+    """Response model for the query endpoint"""
+
+    answer: str
+
+
+@app.post("/api/query", response_model=QueryResponse)
+async def query(request: QueryRequest):
+    """
+    Query the agent
+
+    Args:
+        request: The query request
+
+    Returns:
+        The agent's response
+    """
+    try:
+        # Run the agent
+        response = agent.run(
+            query=request.query, conversation_history=request.conversation_history or []
+        )
+
+        # Return the response
+        return QueryResponse(answer=response)
+    except Exception as e:
+        logger.error(f"Error processing query: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error processing query: {str(e)}")
+
+
+@app.get("/api/health")
+async def health():
+    """
+    Health check endpoint
+
+    Returns:
+        Health status
+    """
+    return {"status": "ok"}
+
+
+if __name__ == "__main__":
+    uvicorn.run("gym_agent.api.main:app", host="0.0.0.0", port=8000, reload=True)
+
+
+--- Start of notebooks/sample_run.ipynb ---
+
+[Code Cell 1]
+"""
+Simple example of using the Gym Agent
+"""
+
+from gym_agent.agents.graph_agent import GraphAgent
+
+
+def main():
+    """
+    Main function
+    """
+    # Create agent
+    agent = GraphAgent()
+
+    # Run agent with a query
+    query = "What are the key concepts in LLM inference?"
+    print(f"Query: {query}")
+
+    response = agent.run(query)
+    print(f"Response: {response}")
+
+    # Run agent with a follow-up query
+    conversation_history = [
+        {"role": "user", "content": query},
+        {"role": "assistant", "content": response},
+    ]
+
+    follow_up_query = "How does KV-Cache optimization work?"
+    print(f"\nFollow-up Query: {follow_up_query}")
+
+    follow_up_response = agent.run(follow_up_query, conversation_history)
+    print(f"Response: {follow_up_response}")
+
+
+if __name__ == "__main__":
+    main()
+

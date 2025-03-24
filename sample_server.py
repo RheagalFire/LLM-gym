@@ -35,7 +35,7 @@ def main():
     logger.info(f"Running query: {query}")
     print(f"Query: {query}")
     
-    response = agent.run(query, debug=args.debug)
+    response = agent.run(query, debug=True)
     print(f"Response: {response}")
     
     # Run agent with a follow-up query

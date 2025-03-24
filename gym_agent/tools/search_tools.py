@@ -1,12 +1,16 @@
 import asyncio
 from typing import Dict, Any, List, Optional
+import logging
+import json
 from gym_agent.clients.qdrant_client import qdrant_client
 from gym_agent.clients.meilisearch_client import meilisearch_client
 from gym_agent.clients.tavily_client import tavily_client
 from gym_agent.clients.openai_client import openai_client
 from gym_agent.clients.mcp_client import QdrantMCPClient, MeiliSearchMCPClient
 from gym_agent.schemas.agent_schemas import ToolExecutionResult, ToolType
-import json
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 class SearchTools:
@@ -25,10 +29,16 @@ class SearchTools:
         Returns:
             The embedding vector
         """
-        response = openai_client.embeddings.create(
-            model="text-embedding-3-small", input=text, dimensions=1536
-        )
-        return response.data[0].embedding
+        logger.debug(f"Getting embedding for text: '{text[:50]}...' (truncated)")
+        try:
+            response = openai_client.embeddings.create(
+                model="text-embedding-3-small", input=text, dimensions=1536
+            )
+            logger.debug("Successfully obtained embedding")
+            return response.data[0].embedding
+        except Exception as e:
+            logger.error(f"Error getting embedding: {str(e)}")
+            raise
 
     @staticmethod
     def search_qdrant(
@@ -45,14 +55,19 @@ class SearchTools:
         Returns:
             The search results
         """
+        logger.info(f"Searching Qdrant with query: '{query}'")
         try:
             # Get the embedding for the query
+            logger.debug("Getting embedding for Qdrant search")
             query_vector = SearchTools.get_embedding(query)
 
             # Search Qdrant
+            logger.debug(f"Searching Qdrant collection '{collection_name}' with limit {limit}")
             results = qdrant_client.search(
                 collection_name=collection_name, query_vector=query_vector, limit=limit
             )
+
+            logger.info(f"Qdrant search returned {len(results)} results")
 
             # Process the results
             processed_results = "Search Results:\n\n"
@@ -64,6 +79,7 @@ class SearchTools:
                     processed_results += f"   {key}: {value}\n"
                 processed_results += "\n"
 
+            logger.debug("Processed Qdrant results successfully")
             return ToolExecutionResult(
                 tool_type=ToolType.QDRANT_SEARCH,
                 raw_results=[
@@ -73,6 +89,7 @@ class SearchTools:
             )
         except Exception as e:
             error_message = f"Error searching Qdrant: {str(e)}"
+            logger.error(error_message)
             return ToolExecutionResult(
                 tool_type=ToolType.QDRANT_SEARCH,
                 raw_results=[],
@@ -95,6 +112,7 @@ class SearchTools:
         Returns:
             The search results
         """
+        logger.info(f"Searching MeiliSearch with query: '{query}'")
         try:
             # Search MeiliSearch
             search_settings = {
@@ -104,9 +122,12 @@ class SearchTools:
                 "highlightPostTag": "</em>",
             }
 
+            logger.debug(f"Searching MeiliSearch index '{index_name}' with settings: {json.dumps(search_settings)}")
             results = meilisearch_client.index(index_name).search(
                 query, search_settings
             )
+
+            logger.info(f"MeiliSearch returned {len(results.get('hits', []))} results")
 
             # Process the results
             processed_results = "Search Results:\n\n"
@@ -127,6 +148,7 @@ class SearchTools:
                     )
                 processed_results += "\n"
 
+            logger.debug("Processed MeiliSearch results successfully")
             return ToolExecutionResult(
                 tool_type=ToolType.MEILISEARCH,
                 raw_results=results["hits"],
@@ -134,6 +156,7 @@ class SearchTools:
             )
         except Exception as e:
             error_message = f"Error searching MeiliSearch: {str(e)}"
+            logger.error(error_message)
             return ToolExecutionResult(
                 tool_type=ToolType.MEILISEARCH,
                 raw_results=[],
@@ -153,9 +176,22 @@ class SearchTools:
         Returns:
             The search results
         """
+        logger.info(f"Searching the web with query: '{query}', depth: {search_depth}")
         try:
             # Search the web
+            logger.debug("Calling Tavily client for web search")
             results = tavily_client.search(query, search_depth)
+
+            # Log detailed information about the results
+            num_results = len(results.get("results", []))
+            logger.info(f"Web search returned {num_results} results")
+
+            if num_results > 0:
+                logger.debug("Sample of web search results:")
+                for i, result in enumerate(results.get("results", [])[:2]):  # Log first 2 results
+                    logger.debug(f"Result {i+1}: {result.get('title', 'No title')} - {result.get('url', 'No URL')}")
+            else:
+                logger.warning("Web search returned no results")
 
             # Process the results
             processed_results = "Web Search Results:\n\n"
@@ -170,6 +206,7 @@ class SearchTools:
                     content = content[:300] + "..."
                 processed_results += f"   Content: {content}\n\n"
 
+            logger.debug("Processed web search results successfully")
             return ToolExecutionResult(
                 tool_type=ToolType.WEB_SEARCH,
                 raw_results=results.get("results", []),
@@ -177,6 +214,8 @@ class SearchTools:
             )
         except Exception as e:
             error_message = f"Error searching the web: {str(e)}"
+            logger.error(error_message)
+            logger.exception("Detailed traceback for web search error:")
             return ToolExecutionResult(
                 tool_type=ToolType.WEB_SEARCH,
                 raw_results=[],
