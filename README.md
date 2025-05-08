@@ -36,3 +36,6 @@
 
 ### Benchmarks
 - [Benchmarks](https://www.evidentlyai.com/llm-evaluation-benchmarks-datasets): Evaluation Datasets
+
+### Data Creation / Preparation 
+- [Tabular Synthetic Data Generation](https://docs.sdv.dev/sdv) : Synthetic Data Generation
