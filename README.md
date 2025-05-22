@@ -34,6 +34,9 @@
 - [Building Agentic Sysmtes](https://huyenchip.com/2025/01/07/agents.html): Chip's guide to building Agentic Systems
 - [Agent Frameworks Comparision](https://www.galileo.ai/blog/mastering-agents-langgraph-vs-autogen-vs-crew): Comparision against different Agents
 
+### ALL about Text-Speech
+- [Dia](https://yummy-fir-7a4.notion.site/dia) : TTS
+
 ### Benchmarks
 - [Benchmarks](https://www.evidentlyai.com/llm-evaluation-benchmarks-datasets): Evaluation Datasets
 
