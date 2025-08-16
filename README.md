@@ -33,6 +33,7 @@
 - [AI Co-Scientist](https://research.google/blog/accelerating-scientific-breakthroughs-with-an-ai-co-scientist/): AI Co-Scientist
 - [Building Agentic Sysmtes](https://huyenchip.com/2025/01/07/agents.html): Chip's guide to building Agentic Systems
 - [Agent Frameworks Comparision](https://www.galileo.ai/blog/mastering-agents-langgraph-vs-autogen-vs-crew): Comparision against different Agents
+- [Langchain-Swe](https://blog.langchain.com/introducing-open-swe-an-open-source-asynchronous-coding-agent/): SWE agent by langchain
 
 ### ALL about Text-Speech
 - [Dia](https://yummy-fir-7a4.notion.site/dia) : TTS
