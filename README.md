@@ -37,6 +37,7 @@
 
 ### ALL about Text-Speech
 - [Dia](https://yummy-fir-7a4.notion.site/dia) : TTS
+- [Bolna.ai](https://www.bolna.ai/)
 
 ### Benchmarks
 - [Benchmarks](https://www.evidentlyai.com/llm-evaluation-benchmarks-datasets): Evaluation Datasets
